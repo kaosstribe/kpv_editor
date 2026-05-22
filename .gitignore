@@ -1,0 +1,6 @@
+*.preset
+*.KVA
+*.pdf
+*.txt
+CLAUDE.md
+.DS_Store

@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAOSS PAD V — Parameter Editor</title>
+<style>
+:root {
+  --bg: #161616;
+  --surface: #1f1f1f;
+  --surface2: #2a2a2a;
+  --border: #363636;
+  --accent: #00d4aa;
+  --accent-dim: #008a72;
+  --text: #e0e0e0;
+  --text-dim: #7a7a7a;
+  --red: #ff5555;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+#header {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 16px; background: var(--surface);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;
+}
+#header h1 { font-size: 14px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+
+.btn {
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surface2); color: var(--text); cursor: pointer; font-size: 12px;
+  transition: border-color .15s, color .15s, background .15s; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.sel { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+#status { font-size: 12px; color: var(--text-dim); }
+#status.ok  { color: var(--accent); }
+#status.err { color: var(--red); }
+
+.lbl { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+select.ctrl {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  padding: 4px 8px; border-radius: 4px; font-size: 12px;
+}
+select.ctrl:focus { outline: 1px solid var(--accent); }
+
+#out-wrap { display: none; align-items: center; gap: 6px; }
+#out-sel  { min-width: 180px; }
+
+/* ── Tabs ── */
+#tabs {
+  display: flex; gap: 2px; padding: 8px 16px 0;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 7px 14px; cursor: pointer; border-radius: 4px 4px 0 0;
+  color: var(--text-dim); font-size: 12px;
+  border: 1px solid transparent; border-bottom: none; transition: color .15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--bg); color: var(--accent); border-color: var(--border); }
+
+/* ── Library ── */
+.lib-row { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--border); }
+.lib-info { flex:1; }
+.lib-name { font-weight:bold; color:var(--text); font-size:13px; }
+.lib-slots { font-size:11px; color:var(--text-dim); margin-top:3px; }
+.lib-algo { background:var(--surface); padding:1px 6px; border-radius:3px; margin-right:4px; font-size:11px; }
+.lib-btns { display:flex; gap:6px; }
+.empty-msg { color:var(--text-dim); padding:24px 12px; font-size:12px; }
+
+/* ── Content ── */
+#content { padding: 16px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Row bars ── */
+.bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+/* ── Params grid ── */
+.pgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+/* ── Param card ── */
+.pcard {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px;
+  transition: border-color .15s;
+}
+.pcard:hover { border-color: var(--accent-dim); }
+.pcard .pname { font-size: 11px; color: var(--text-dim); margin-bottom: 2px; }
+.pcard .pdisplay { font-size: 10px; color: var(--accent-dim); margin-bottom: 7px; font-family: monospace; }
+
+input[type=range] {
+  width: 100%; height: 4px; cursor: pointer;
+  accent-color: var(--accent);
+}
+.pval {
+  text-align: right; font-size: 12px; font-weight: 600;
+  color: var(--text); margin-top: 4px;
+}
+
+.pcard select {
+  width: 100%; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); padding: 5px 6px;
+  border-radius: 4px; font-size: 12px;
+}
+.pcard select:focus { outline: 1px solid var(--accent); }
+
+.toggle {
+  width: 100%; padding: 6px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--surface2); color: var(--text-dim);
+  cursor: pointer; font-size: 12px; font-weight: 600; text-align: center;
+  transition: all .15s;
+}
+.toggle.on { background: var(--accent); color: #000; border-color: var(--accent); }
+
+.pnote { font-size: 10px; color: var(--text-dim); margin-top: 5px; line-height: 1.4; }
+
+/* ── Section divider ── */
+.sdiv {
+  grid-column: 1 / -1;
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  padding: 10px 0 6px; border-bottom: 1px solid var(--border);
+  margin-top: 6px;
+}
+.sdiv:first-child { margin-top: 0; }
+
+.empty-msg { color: var(--text-dim); padding: 20px 0; }
+
+/* ── Curve Modal ── */
+#curve-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.78); z-index: 200;
+  align-items: center; justify-content: center;
+}
+#curve-modal.open { display: flex; }
+#curve-modal-inner {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+}
+#curve-modal-canvas {
+  display: block; border: 1px solid var(--border);
+  border-radius: 4px; cursor: crosshair; touch-action: none;
+  user-select: none;
+}
+/* Help modal content styles */
+#help-modal-body h2 { margin:0 0 14px; font-size:16px; color:var(--accent); }
+#help-modal-body h3 { margin:16px 0 6px; font-size:13px; color:var(--text); border-bottom:1px solid var(--border); padding-bottom:4px; }
+#help-modal-body p  { margin:6px 0; }
+#help-modal-body ul, #help-modal-body ol { margin:6px 0 6px 20px; }
+#help-modal-body li { margin:3px 0; }
+#help-modal-body table { border-collapse:collapse; width:100%; margin:8px 0; font-size:12px; }
+#help-modal-body th, #help-modal-body td { border:1px solid var(--border); padding:5px 10px; text-align:left; }
+#help-modal-body th { background:var(--surface); color:var(--accent); font-weight:600; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Header ═══ -->
+<div id="header">
+  <h1>KAOSS PAD V — Editor</h1>
+  <button class="btn" onclick="connectMIDI()">Connect MIDI</button>
+  <button class="btn" style="border-color:#ffaa00;color:#ffaa00" onclick="sendAll()">⬆ Send All</button>
+  <button class="btn" style="border-color:#ffcc44;color:#ffcc44" onclick="sendOneTab()">⬆ Send 1 Tab</button>
+  <div id="out-wrap">
+    <span class="lbl">OUT:</span>
+    <select class="ctrl" id="out-sel" onchange="selectOutput()"></select>
+  </div>
+  <span id="status">Not connected</span>
+  <span id="dsp-badge" style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+    <span class="lbl">DSP:</span>
+    <span id="dsp-val" style="font-weight:700;color:var(--accent);min-width:3em;text-align:right">0%</span>
+    <span style="display:inline-block;width:80px;height:7px;background:var(--surface2);border-radius:3px;overflow:hidden;border:1px solid var(--border)">
+      <span id="dsp-bar" style="display:block;height:100%;width:0%;background:var(--accent);transition:width .25s,background .25s;border-radius:3px"></span>
+    </span>
+  </span>
+  <!-- Help dropdown -->
+  <div id="help-wrap" style="position:relative;margin-left:8px">
+    <button class="btn" id="help-btn" onclick="toggleHelp(event)"
+      style="border-color:#aaa;color:#aaa">Help ▾</button>
+    <div id="help-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);
+      background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+      min-width:160px;z-index:200;box-shadow:0 4px 16px #0008;overflow:hidden">
+    </div>
+  </div>
+
+  <span class="lbl">MIDI Ch:</span>
+  <select class="ctrl" id="midi-ch" onchange="onChChange()">
+    <option value="0">1</option><option value="1">2</option><option value="2">3</option>
+    <option value="3">4</option><option value="4">5</option><option value="5">6</option>
+    <option value="6">7</option><option value="7">8</option><option value="8">9</option>
+    <option value="9">10</option><option value="10">11</option><option value="11">12</option>
+    <option value="12">13</option><option value="13">14</option><option value="14">15</option>
+    <option value="15">16</option>
+  </select>
+</div>
+
+<!-- ═══ Tabs ═══ -->
+<div id="tabs">
+  <div class="tab active"  onclick="showTab('fx')">FX Slots</div>
+  <div class="tab"         onclick="showTab('lfo')">LFO</div>
+  <div class="tab"         onclick="showTab('eg')">EG</div>
+  <div class="tab"         onclick="showTab('ef')">EF (Follower)</div>
+  <div class="tab"         onclick="showTab('mixer')">Mixer</div>
+  <div class="tab"         onclick="showTab('vp')">Virtual Patch</div>
+  <div class="tab"         onclick="showTab('lib')">Library</div>
+</div>
+
+<!-- ═══ Debug bar ═══ -->
+<div id="debugbar" style="
+  background:#111; border-bottom:1px solid #333; padding:8px 16px;
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12px;">
+  <button class="btn" onclick="sendInquiry()">🔍 Device Inquiry</button>
+  <button class="btn" onclick="sendTestCC()">🎛 Test CC#1 val=64</button>
+  <span style="color:#555">Last TX:</span>
+  <code id="tx-log" style="color:#00d4aa; font-size:11px; word-break:break-all; flex:1">—</code>
+</div>
+
+<!-- ═══ Content ═══ -->
+<div id="content">
+
+  <!-- FX Panel -->
+  <div class="panel active" id="panel-fx">
+    <div class="bar">
+      <span class="lbl">Slot:</span>
+      <button class="btn sel" onclick="selSlot(0,this)">FX 1</button>
+      <button class="btn"     onclick="selSlot(1,this)">FX 2</button>
+      <button class="btn"     onclick="selSlot(2,this)">FX 3</button>
+      <button class="btn"     onclick="selSlot(3,this)">FX 4</button>
+      <button class="btn"     onclick="selSlot(4,this)">FX 5</button>
+    </div>
+    <div class="bar">
+      <span class="lbl">Algorithm:</span>
+      <select class="ctrl" id="algo-sel" style="min-width:220px" onchange="selAlgo(parseInt(this.value))"></select>
+    </div>
+    <div id="fx-params" class="pgrid"></div>
+  </div>
+
+  <!-- LFO Panel -->
+  <div class="panel" id="panel-lfo">
+    <div id="lfo-params" class="pgrid"></div>
+  </div>
+
+  <!-- EG Panel -->
+  <div class="panel" id="panel-eg">
+    <div id="eg-params" class="pgrid"></div>
+  </div>
+
+  <!-- EF Panel -->
+  <div class="panel" id="panel-ef">
+    <div id="ef-params" class="pgrid"></div>
+  </div>
+
+  <!-- Mixer Panel -->
+  <div class="panel" id="panel-mixer">
+    <div id="mixer-params" class="pgrid"></div>
+  </div>
+
+  <!-- Virtual Patch Panel -->
+  <div class="panel" id="panel-vp">
+    <div id="vp-params" class="pgrid"></div>
+  </div>
+
+  <!-- Library Panel -->
+  <div class="panel" id="panel-lib">
+    <div class="bar">
+      <span class="lbl">Import:</span>
+      <input type="file" id="lib-file-input" accept=".preset" multiple
+        style="display:none" onchange="importPresetFiles(this.files)">
+      <button class="btn" onclick="document.getElementById('lib-file-input').click()">
+        + Import .preset files
+      </button>
+      <span id="lib-status" style="font-size:11px;color:var(--text-dim)"></span>
+    </div>
+    <div id="lib-list"></div>
+  </div>
+
+</div><!-- #content -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// Shared enum lists
+// ═══════════════════════════════════════════════════════════
+const LFO_WAVE = [
+  'Triangle','Saw Down','Saw Up','Square','Sine','Guitar',
+  'Exp Tri','Exp Saw D','Exp Saw U','Step Tri-4','Step Tri-6',
+  'Step Saw-4','Step Saw-6','S/H Level','S/H Lv&Tm','S/H Time',
+  'Rand Level','Rand Lv&Tm','Rand Time'
+];
+const FREQ_NOTE = [
+  '4/1','3/1','8/3','2/1','3/2','4/3','1/1','3/4','2/3',
+  '1/2','3/8','1/3','1/4','3/16','1/6','1/8','3/32',
+  '1/12','1/16','3/64','1/24','1/32','3/128','1/48','1/64'
+];
+const DELAY_NOTE = [
+  '1/64','1/32T','1/64D','1/32','1/16T','1/32D','1/16',
+  '1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D',
+  '1/2','1/1T','1/2D','1/1','2/1T','1/1D','2/1','4/1T','2/1D','4/1'
+];
+const GEQ_TYPE = [
+  'Wide1','Wide2','Wide3','HalfWide1','HalfWide2','HalfWide3',
+  'Low','WideLow','Mid','WideMid','High','WideHigh'
+];
+const VOCAL_SCALE = [
+  'Major','Harmonic Maj','Natural Min','Harmonic Min','Melodic Min','Chromatic'
+];
+const VOCAL_PITCH = [
+  'Down Oct','Down 7th','Down 6th','Down 5th','Down 4th',
+  'Down 3rd','Down 2nd','Unison',
+  'Up 2nd','Up 3rd','Up 4th','Up 5th','Up 6th','Up 7th','Up Oct'
+];
+// Internal value order (0~16) differs from PDF display order.
+// 0=Off, 1-4=LFO1-4, 5-8=EG1-4, 9-10=EF1-2, 11-16=X1/Y1/Touch1/X2/Y2/Touch2
+const VP_SOURCE = [
+  'Off',
+  'LFO1','LFO2','LFO3','LFO4',
+  'EG1','EG2','EG3','EG4',
+  'EF1','EF2',
+  'X1','Y1','Touch1','X2','Y2','Touch2',
+];
+const VP_DEST_CAT = [
+  'FX1','FX2','FX3','FX4','FX5',
+  'LFO1','LFO2','LFO3','LFO4',
+  'EG','EF','MIXER','VP'
+];
+
+const CHORD_KEY = [
+  'C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3','A3','A#3','B3',
+  'C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4','C5'
+];
+
+// ═══════════════════════════════════════════════════════════
+// Parameter definition helpers
+// ═══════════════════════════════════════════════════════════
+const R = (name, disp, dMin, dMax, iMin, iMax, note='') =>
+  ({ name, disp, type:'range', dMin, dMax, iMin, iMax, note });
+const S = (name, disp, opts, note='') =>
+  ({ name, disp, type:'select', opts, note });
+const T = (name, disp, note='') =>
+  ({ name, disp, type:'toggle', note });
+
+// ═══════════════════════════════════════════════════════════
+// Algorithm names
+// ═══════════════════════════════════════════════════════════
+const ALGO_NAMES = [
+  'No Effect','Analog Osc','Sample Osc','Parametric EQ','Compressor',
+  'Filter','Isolator','Graphic EQ','Distortion','Decimator',
+  'Delay','Tape Echo','Chorus','Flanger','Phaser',
+  'Tremolo','Ring Mod','Pitch Shifter','Grain Shifter','Looper',
+  'Vinyl Break','Reverb','Shimmer','Early Reflection','IR Loader',
+  'Vocal FX','Drone','Chord Resonator'
+];
+
+// Algorithm ID → Block ID (TABLE 5 in MIDI impl)
+const ALGO_TO_BLOCK = [
+   0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,
+  27, // 17 Pitch Shifter → Block 27
+  17, // 18 Grain Shifter → Block 17
+  18, // 19 Looper        → Block 18
+  19, // 20 Vinyl Break   → Block 19
+  20, // 21 Reverb        → Block 20
+  21, // 22 Shimmer       → Block 21
+  22, // 23 Early Refl.   → Block 22
+  23, // 24 IR Loader     → Block 23
+  24, // 25 Vocal FX      → Block 24
+  25, // 26 Drone         → Block 25
+  26, // 27 Chord Reso.   → Block 26
+];
+
+// ═══════════════════════════════════════════════════════════
+// Effect algorithm parameter database
+// ═══════════════════════════════════════════════════════════
+const ALGO_PARAMS = {
+  0: [], // No Effect
+
+  1: [ // Analog Osc  (Block 1)
+    S('Osc1 Wave',       'Osc1-Wave',           ['SAW','SQUR','SINE']),
+    S('Osc2 Wave',       'Osc2-Wave',           ['SAW','SQUR','SINE']),
+    R('Osc1 Level',      'Osc1-Level',          0,127,  0,100),
+    R('Osc2 Level',      'Osc2-Level',          0,127,  0,100),
+    R('Noise Level',     'Noise-Level',         0,127,  0,100),
+    R('Transpose',       'Pitch-Transpose',   -60, 60,-60, 60),
+    R('Octave',          'Oct-Shift',          -4,  4, -4,  4),
+    R('Osc1 Pitch',      'Osc1-Coarse',       -63, 63, -1,  1),
+    R('Osc2 Pitch',      'Osc2-Coarse',       -63, 63, -1,  1),
+    R('Portamento',      'Portamento-Time',     0,127,  0,100),
+    S('Amp EG Select',   'Amp-EG',              ['EG1','EG2','EG3','EG4','Cons'],
+      'Cons = continuous output'),
+    T('Ring Mod On',     'Ring-Mod',            'Ring modulation between Osc1 & 2'),
+    T('Sync Mod On',     'Sync-Mod',            'Sync modulation between Osc1 & 2'),
+    R('Cross Mod',       'Mod-Depth',           0,127,  0,100),
+    R('Pan',             'Pan',                -63, 63,-50, 50),
+  ],
+
+  2: [ // Sample Osc  (Block 2)
+    T('Loop',            'Loop-On'),
+    S('Gate Mode',       'GateMode',            ['F1','F2','BOTH'],   'Trigger finger'),
+    S('Direction',       'Direction',           ['FWRD','RVRS']),
+    T('Phase Reset',     'PhaseReset'),
+    R('Start',           'Start',               0,127,  0,  1),
+    R('Length',          'Length',              0,127,  0,  1),
+    R('Loop Start',      'LoopStart',           0,127,  0,  1),
+    R('Pitch Ratio',     'PitchRatio',        -63, 63, -1,  1),
+    R('Glide',           'Glide',               0,127,  0,  1),
+    R('Transpose',       'Transpose',          -63, 63, -1,  1),
+    R('Fade',            'Fade',                0,127,  0,  1),
+    R('Level',           'Level',               0,127,  0,264),
+    S('Wave',            'Sample-Sel',          ['[FILE SELECT]'],    'Load from SD / internal'),
+    S('Amp EG Select',   'AmpEGSelect',         ['EG1','EG2','EG3','EG4','Cons']),
+    R('Pan',             'Pan',                -63, 63,-50, 50),
+  ],
+
+  3: [ // Parametric EQ  (Block 3)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input Trim',      'InputTrim',           0,127,  0,100),
+    T('Band1 On',        'Band1'),
+    S('Band1 Type',      'Band1-Type',          ['PEAK','SHLF','CUT']),
+    R('Band1 Freq',      'Band1-Freq',          0,127,  0,  1),
+    R('Band1 Q',         'Band1-Q',             0,127, .5, 10, 'Valid for PEAK only'),
+    R('Band1 Gain',      'Band1-Gain',         -63, 63,-18, 18),
+    T('Band2 On',        'Band2'),
+    R('Band2 Freq',      'Band2-Freq',          0,127,  0,  1),
+    R('Band2 Q',         'Band2-Q',             0,127, .5, 10),
+    R('Band2 Gain',      'Band2-Gain',         -63, 63,-18, 18),
+    T('Band3 On',        'Band3'),
+    R('Band3 Freq',      'Band3-Freq',          0,127,  0,  1),
+    R('Band3 Q',         'Band3-Q',             0,127, .5, 10),
+    R('Band3 Gain',      'Band3-Gain',         -63, 63,-18, 18),
+    T('Band4 On',        'Band4'),
+    S('Band4 Type',      'Band4-Type',          ['PEAK','SHLF','CUT']),
+    R('Band4 Freq',      'Band4-Freq',          0,127,  0,  1),
+    R('Band4 Q',         'Band4-Q',             0,127, .5, 10, 'Valid for PEAK only'),
+    R('Band4 Gain',      'Band4-Gain',         -63, 63,-18, 18),
+  ],
+
+  4: [ // Compressor  (Block 4)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    S('Mode',            'Detect-Mode',         ['RMS','PEAK']),
+    T('Trigger EQ On',   'EQ-OnOff'),
+    S('Trigger EQ Type', 'EQ-Type',             ['LPF','HPF','BPF','BRF']),
+    R('Trigger EQ Freq', 'EQ-Freq',             0,127,  0,  1),
+    R('Trigger EQ Q',    'EQ-Q',                0,127, .5, 10),
+    R('Ratio',           'Ratio',               0,127,  5,100),
+    R('Threshold',       'Threshold',        -127,  0,-40,  0),
+    R('Knee',            'Soft-Knee',           0,127,  0, 30),
+    R('Attack',          'Attack',              0,127,  0,  1),
+    R('Release',         'Release',             0,127,  0,  1),
+    R('Output',          'Gain',                0,127,  0,  1),
+    T('Auto Gain On',    'Auto-Makeup'),
+  ],
+
+  5: [ // Filter  (Block 5)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input',           'Input',               0,127,  0,100),
+    S('Type',            'Type',                ['LPF','HPF','BPF','BRF']),
+    R('Cutoff',          'Cutoff',              0,127,  0,142),
+    R('Resonance',       'Resonance',           0,127,  0,100),
+    T('Drive On',        'Drive'),
+    R('Drive Low Boost', 'Drive-Low',           0,127,  0,100),
+    R('Drive Gain',      'Drive-Gain',          0,127,  0, 18),
+    R('Output',          'Output',              0,127,  0,100),
+    R('LFO Depth',       'LFO-Depth',           0,127,  0,100),
+    S('LFO Wave',        'LFO-Wave',            LFO_WAVE),
+    R('LFO Rate',        'LFO-Freq',            0,127,  0,  1),
+    T('LFO Sync On',     'LFO-Sync'),
+    S('LFO Sync Rate',   'LFO-Note',            FREQ_NOTE),
+    R('LFO Shape',       'LFO-Shape',          -63, 63,-100,100),
+    R('LFO Fade',        'LFO-Fade',            0,127,  0,9.9),
+    T('LFO Pad Reset',   'LFO-Reset'),
+    T('LFO Phase Rand',  'LFO-StartRand'),
+    R('LFO Phase L',     'LFO-PhaseL',         -63, 63,-180,180),
+    R('LFO Phase R',     'LFO-PhaseR',         -63, 63,-180,180),
+  ],
+
+  6: [ // Isolator  (Block 6)
+    R('Input',           'InputTrim',           0,127,  0,100),
+    R('Low X-Over Freq', 'FreqLowMid',          0,127,  0,  1),
+    R('High X-Over Freq','FreqMidHigh',         0,127,  0,  1),
+    R('Low Gain',        'LowGain',             0,127,  0,100),
+    R('Mid Gain',        'MidGain',             0,127,  0,100),
+    R('High Gain',       'HighGain',            0,127,  0,100),
+    R('Scale',           'Scale',               0,127,  0,200),
+  ],
+
+  7: [ // Graphic EQ  (Block 7)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    S('Type',            'Type',                GEQ_TYPE),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    R('Band1 Gain',      'Band1Gain',          -63, 63,-18, 18),
+    R('Band2 Gain',      'Band2Gain',          -63, 63,-18, 18),
+    R('Band3 Gain',      'Band3Gain',          -63, 63,-18, 18),
+    R('Band4 Gain',      'Band4Gain',          -63, 63,-18, 18),
+    R('Band5 Gain',      'Band5Gain',          -63, 63,-18, 18),
+    R('Band6 Gain',      'Band6Gain',          -63, 63,-18, 18),
+    R('Band7 Gain',      'Band7Gain',          -63, 63,-18, 18),
+  ],
+
+  8: [ // Distortion  (Block 8)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    S('Type',            'Type',                ['AMP','CLIP']),
+    R('Drive',           'Drive',              -63, 63,-42, 42),
+    R('Pre EQ',          'PreEq',              -63, 63,-100,100),
+    R('Tone',            'Tone',                0,127,  0,100),
+    R('Post EQ Freq',    'PostEQFreq',          0,127,  0,  1),
+    R('Post EQ Gain',    'PostEQGain',         -63, 63,-18, 18),
+    R('Level',           'Level',               0,127,  0,100),
+  ],
+
+  9: [ // Decimator  (Block 9)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    T('Pre LPF',         'PreLpf'),
+    R('Sample Rate',     'SampleFreq',          0,127,  0,  1),
+    R('High Damp',       'Hi-Damp',             0,127,  0,100),
+    R('Bit Depth',       'Resolution',          0,127,  2, 24),
+    R('Level',           'Out-Level',           0,127,  0,100),
+  ],
+
+  10: [ // Delay  (Block 10)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    T('Sync On',         'Sync'),
+    R('High Damp',       'Hi-Damp',             0,127,  0,100),
+    R('Low Damp',        'Lo-Damp',             0,127,  0,100),
+    S('Mode',            'PlayMode',            ['L-R','PiPo','M-S']),
+    T('Link',            'TimeLink'),
+    R('Offset',          'Offset',             -63, 63,-100,100),
+    R('Feedback',        'F-Back',              0,127,  0,100),
+    R('Fwd/Bwd',         'For-Rev',             0,127,  0,100),
+    R('Delay Time 1',    'D-Time-L',            0,127,  0,  1),
+    S('Sync Time 1',     'Note-L',              DELAY_NOTE),
+    R('Delay Time 2',    'D-Time-R',            0,127,  0,  1),
+    S('Sync Time 2',     'Note-R',              DELAY_NOTE),
+    R('Blend',           'Blend',               0,127,  0,100),
+  ],
+
+  11: [ // Tape Echo  (Block 11)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    R('Pre Tone',        'PreTone',             0,127,  0,100),
+    R('Time Mod Rate',   'Mod-Rate',            0,127,  0,  1),
+    R('Time Mod Depth',  'Mod-Depth',           0,127,  0,100),
+    R('High Damp',       'Hi-Damp',             0,127,  0,100),
+    R('Low Damp',        'LowDamping',          0,127,  0,100),
+    R('Saturation',      'Saturation',          0,127,  0,100),
+    R('Level',           'Level',               0,127,  0,100),
+    R('Pan',             'Pan',                -63, 63,-50, 50),
+    R('Feedback',        'F.back',              0,127,  0,100),
+    R('Time Mod Resp.',  'Mod-Response',        0,127,  0,100),
+    T('Delay Sync On',   'Sync'),
+    R('Delay Time',      'D.Time',              0,127,  0,  1),
+    S('Sync Delay Time', 'Note',                DELAY_NOTE),
+    R('Tap1 Level',      'Tap1-Level',          0,127,  0,100),
+    R('Tap1 Pan',        'Tap1-Pan',           -63, 63,-50, 50),
+    R('Tap1 Feedback',   'Tap1-F.Back',        -63, 63,-100,100),
+    R('Tap2 Position',   'Tap2-Pos',            0,127,  0,100),
+    R('Tap2 Level',      'Tap2-Level',          0,127,  0,100),
+    R('Tap2 Pan',        'Tap2-Pan',           -63, 63,-50, 50),
+    R('Tap2 Feedback',   'Tap2-F.back',        -63, 63,-100,100),
+    R('Tap3 Position',   'Tap3-Pos',            0,127,  0,100),
+    R('Tap3 Level',      'Tap3-Level',          0,127,  0,100),
+    R('Tap3 Pan',        'Tap3-Pan',           -63, 63,-50, 50),
+    R('Tap3 Feedback',   'Tap3-F.back',        -63, 63,-100,100),
+  ],
+
+  12: [ // Chorus  (Block 12)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input',           'Input',               0,127,  0,100),
+    S('Low EQ Mode',     'LowEq-Freq',          ['LOW','MLOW']),
+    R('Low EQ Gain',     'LowEq-Gain',         -63, 63,-15, 15),
+    S('High EQ Mode',    'HighEq-Freq',         ['HIGH','MIDH']),
+    R('High EQ Gain',    'HighEq-Gain',        -63, 63,-15, 15),
+    R('Delay 1',         'DelayL',              0,127,  0, 50),
+    R('Delay 2',         'DelayR',              0,127,  0, 50),
+    R('Depth',           'Depth',               0,127,  0,100),
+    S('Voices',          'Voices',              ['2','4','8']),
+    S('LFO Wave',        'LFO-Wave',            LFO_WAVE),
+    R('LFO Rate',        'LFO-Freq',            0,127,  0,  1),
+    T('LFO Sync On',     'LFO-Sync'),
+    S('LFO Sync Rate',   'LFO-Note',            FREQ_NOTE),
+    R('LFO Shape',       'LFO-Shape',          -63, 63,-100,100),
+    R('LFO Fade',        'LFO-Fade',            0,127,  0,9.9),
+    T('LFO Pad Reset',   'LFO-Reset'),
+    T('LFO Phase Rand',  'LFO-StartRand'),
+    R('LFO Phase L',     'LFO-PhaseL',         -63, 63,-180,180),
+    R('LFO Phase R',     'LFO-PhaseR',         -63, 63,-180,180),
+  ],
+
+  13: [ // Flanger  (Block 13)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Delay Time',      'D.Time',              0,127,  0, 50),
+    R('Depth',           'Depth',               0,127,  0,100),
+    R('Feedback',        'F.back',             -63, 63,-100,100),
+    R('High Damp',       'High-Dump',           0,127,  0,100),
+    S('LFO Wave',        'LFO-Wave',            LFO_WAVE),
+    R('LFO Rate',        'LFO-Freq',            0,127,  0,  1),
+    T('LFO Sync On',     'LFO-Sync'),
+    S('LFO Sync Rate',   'LFO-Note',            FREQ_NOTE),
+    R('LFO Shape',       'LFO-Shape',          -63, 63,-100,100),
+    R('LFO Fade',        'LFO-Fade',            0,127,  0,9.9),
+    T('LFO Pad Reset',   'LFO-Reset'),
+    T('LFO Phase Rand',  'LFO-StartRand'),
+    R('LFO Phase L',     'LFO-PhaseL',         -63, 63,-180,180),
+    R('LFO Phase R',     'LFO-PhaseR',         -63, 63,-180,180),
+  ],
+
+  14: [ // Phaser  (Block 14)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Resonance',       'Resonance',         -100,100,-100,100),
+    R('High Damp',       'Hi-Damp',             0,127,  0,100),
+    R('Manual',          'Manual',              0,127,  0,100),
+    R('Depth',           'Depth',               0,127,  0,100),
+    R('Notch',           'Notch',               0, 11,  0, 11),
+    S('LFO Wave',        'LFO-Wave',            LFO_WAVE),
+    R('LFO Rate',        'LFO-Freq',            0,127,  0,  1),
+    T('LFO Sync On',     'LFO-Sync'),
+    S('LFO Sync Rate',   'LFO-Note',            FREQ_NOTE),
+    R('LFO Shape',       'LFO-Shape',          -63, 63,-100,100),
+    R('LFO Fade',        'LFO-Fade',            0,127,  0,9.9),
+    T('LFO Pad Reset',   'LFO-Reset'),
+    T('LFO Phase Rand',  'LFO-StartRand'),
+    R('LFO Phase L',     'LFO-PhaseL',         -63, 63,-180,180),
+    R('LFO Phase R',     'LFO-PhaseR',         -63, 63,-180,180),
+  ],
+
+  15: [ // Tremolo  (Block 15)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Depth',           'Depth',               0,127,  0,100),
+    S('LFO Wave',        'LFO-Wave',            LFO_WAVE),
+    R('LFO Rate',        'LFO-Freq',            0,127,  0,  1),
+    T('LFO Sync On',     'LFO-Sync'),
+    S('LFO Sync Rate',   'LFO-Note',            FREQ_NOTE),
+    R('LFO Shape',       'LFO-Shape',          -63, 63,-100,100),
+    R('LFO Fade',        'LFO-Fade',            0,127,  0,9.9),
+    T('LFO Pad Reset',   'LFO-Reset'),
+    T('LFO Phase Rand',  'LFO-StartRand'),
+    R('LFO Phase L',     'LFO-PhaseL',         -63, 63,-180,180),
+    R('LFO Phase R',     'LFO-PhaseR',         -63, 63,-180,180),
+  ],
+
+  16: [ // Ring Mod  (Block 16)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Pre LPF',         'PreLpf',              0,127,  0,100),
+    R('Freq',            'FixedFreq',           0,127,  0,  1),
+  ],
+
+  17: [ // Pitch Shifter  (Block 27)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Pitch',           'Pitch',              -63, 63,-24, 24),
+    T('Delay Sync On',   'Sync'),
+    S('Sync Delay Time', 'Note',                DELAY_NOTE),
+    R('Delay Time',      'D.Time',              0,127,  0,  1),
+    R('Feedback',        'F.back',              0,127,  0,100),
+    R('Tracking',        'Tracking',            0,127,  0,100),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    T('Delay On',        'Delay'),
+  ],
+
+  18: [ // Grain Shifter  (Block 17)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Grain Size',      'G.size',              0,127,  0,100),
+    T('Quantize On',     'Quantize'),
+    R('Interval Rate',   'Rate',                0,127,  0,  1),
+    T('Interval Sync On','Sync'),
+    S('Interval Sync Rate','Sync-Note',         FREQ_NOTE),
+    T('Interval Pad Reset','LfoReset'),
+    R('Interval Phase',  'Phase',              -63, 63,-180,180),
+  ],
+
+  19: [ // Looper  (Block 18)
+    R('Direct Level',    'Dry',                 0,127,  0,100),
+    R('Forward Level',   'Forward',             0,127,  0,100),
+    R('Backward Level',  'Backward',            0,127,  0,100),
+    S('Beat',            'Note',                DELAY_NOTE),
+    R('Speed',           'Speed',               0,127,  0,  1),
+    T('Loop On',         'Loop-On'),
+    T('Auto Dry Mute',   'DryMute'),
+  ],
+
+  20: [ // Vinyl Break  (Block 19)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    T('Break On',        'Break-On'),
+    R('Speed',           'Spped',               0,127,  0,100),
+    R('Scratch Position','Scratch',             0,127,  1,100),
+    R('Scratch Region',  'S.Width',             0,127,  1,100),
+    R('Scratch Lag',     'S.Lag',               0,127,  1,100),
+    T('Dry Mute On',     'Dry-Mute'),
+  ],
+
+  21: [ // Reverb  (Block 20)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('ER → LR Send',    'Send-Level',          0,127,  0,100),
+    R('Pre Delay',       'Pre-Delay',           0,127,  0,  1),
+    R('Size',            'Room-Size',           0,127,  5,100),
+    R('ER Level',        'ER-Level',            0,127,  0,100),
+    R('ER HPF Cutoff',   'ER-HPF',              0,127,  0,  1),
+    R('ER LPF Cutoff',   'ER-LPF',              0,127,  0,  1),
+    R('LR Width',        'Late-Width',          0,127,  0,100),
+    R('LR Diff Input',   'Late_InputDiff',      0,127,  0,100),
+    R('LR Diff Feedback','Late-Diff',           0,127,  0,100),
+    R('LR Reverb Time',  'Late-Rev-Time',       0,127,200,10000),
+    R('LR High Freq',    'Late-Flt-Hi-Freq',    0,127,  0,  1),
+    R('LR High Adjust',  'Late-Flt-Hi-Gain',    0,127, .2,  4),
+    R('LR Low Freq',     'Late-Flt-Lo-Freq',    0,127,  0,  1),
+    R('LR Low Adjust',   'Late-Flt-Lo-Gain',    0,127, .2,  4),
+    R('LR LPF Cutoff',   'Post-Flt-HPF',        0,127,  0,  1),
+    R('LR HPF Cutoff',   'Pos-Flt-LPF',         0,127,  0,  1),
+    R('LR APF Mod Rate 1','Mod1-Rate',          0,127,  0,  1),
+    R('LR APF Mod Rate 2','Mod2-Rate',          0,127,  0,  1),
+    R('LR APF Mod Depth','Mod-Depth',           0,127,  0,100),
+  ],
+
+  22: [ // Shimmer  (Block 21)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Reverb Time',     'Time',                0,127,100,10000),
+    R('Input',           'Input',               0,127,  0,100),
+    R('Pre EQ Hi Gain',  'PRE-Hi-Gain',        -63, 63,-18, 18),
+    R('Pre EQ Lo Gain',  'PRE-Lo-Gain',        -63, 63,-18, 18),
+    R('Pre EQ Hi Freq',  'PRE-Hi-Freq',         0,127,  0,  1),
+    R('Pre EQ Lo Freq',  'PRE-Lo-Freq',         0,127,  0,  1),
+    R('Direct Level',    'Direct-Level',        0,127,  0,100),
+    R('Pre Delay',       'Pre-D.Time',          0,127,  0,  1),
+    R('Shimmer Output',  'Shimmer-Out',         0,127,  0,100),
+    R('Shimmer Pitch',   'Shimmer-Pitch',      -63, 63,-12, 12),
+    R('Shimmer Mod Rate','P.Mod-R',             0,127,.01,  2),
+    R('Shimmer Mod Depth','P.Mod-D',            0,127,  0,100),
+    R('Tone',            'Tone',                0,127,  0,100),
+    R('Pan',             'Pan',                -63, 63,-50, 50),
+    R('APF',             'Apf',                -63, 63,-100,100),
+  ],
+
+  23: [ // Early Reflection  (Block 22)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    R('Pre EQ Lo Freq',  'EQ-Lo-Freq',          0,127,  0,  1),
+    R('Pre EQ Lo Gain',  'EQ-Lo-Gain',         -63, 63,-18, 18),
+    R('Pre EQ Hi Freq',  'EQ-Hi-Freq',          0,127,  0,  1),
+    R('Pre EQ Hi Gain',  'EQ-Hi-Gain',         -63, 63,-18, 18),
+    R('Pre Delay',       'PreDelay',            0,127,  0,200),
+    S('Type',            'Type',                ['SHAP','LOSE','MODL','RVSE'],
+      'Sharp / Loose / Modulated / Reverse'),
+    R('Reverb Time',     'ER-Time',             0,127, 10,1600),
+    T('High Density On', 'Hi-Dens'),
+  ],
+
+  24: [ // IR Loader  (Block 23)
+    R('Dry/Wet',         'Dry/Wet',             0,127,  0,100),
+    R('Input',           'Trim',                0,127,  0,100),
+    S('Type',            'FILE',                ['[FILE SELECT]'],
+      'Load .wav / .aiff from KORG/Import/IR'),
+    R('Pre EQ Lo Freq',  'EqLowFreq',           0,127,  0,  1),
+    R('Pre EQ Hi Freq',  'EqHiFreq',            0,127,  0,  1),
+    R('Gain',            'Gain',                0,127,  0,100),
+  ],
+
+  25: [ // Vocal FX  (Block 24)
+    R('Dry/Wet',         'DryWetLevel',         0,127,  0,100),
+    R('Lead Level',      'TuneLevel',           0,127,  0,100),
+    R('Harmonizer Level','HarmonyLevel',        0,127,  0,100),
+    T('HardTune On',     'HardTune',            'Enables params 5~8'),
+    R('Formant Shift',   'FormantShift',       -63, 63,-50, 50),
+    R('HardTune Speed',  'Speed',               0,127,  1,500),
+    R('HardTune Depth',  'Intensity',           0,127,  0,100),
+    R('HardTune Pitch',  'Semitone',           -63, 63,-12, 12),
+    S('Key',             'Key',                 ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']),
+    S('Scale',           'Scale',               VOCAL_SCALE),
+    T('Harmonizer On',   'Harmonizer',          'Enables params 12~23'),
+    R('H1 Level',        'H1Lvl',               0,127,  0,100),
+    R('H1 Pan',          'H1Pan',              -63, 63,-50, 50),
+    R('H1 Chromatic',    'H1Vcng',             -12, 12,  0, 24, 'Chromatic scale only'),
+    S('H1 Pitch',        'H1Pitch',             VOCAL_PITCH,         'Non-chromatic scale only'),
+    R('H1 Offset',       'H1Tune',             -63, 63,-1200,1200),
+    R('H1 Formant',      'H1Fmnt',             -63, 63,-50, 50),
+    R('H2 Level',        'H2Lvl',               0,127,  0,100),
+    R('H2 Pan',          'H2Pan',              -63, 63,-50, 50),
+    R('H2 Chromatic',    'H2Vcng',             -12, 12,  0, 24, 'Chromatic scale only'),
+    S('H2 Pitch',        'H2Pitch',             VOCAL_PITCH,         'Non-chromatic scale only'),
+    R('H2 Offset',       'H2Tune',             -63, 63,-1200,1200),
+    R('H2 Formant',      'H2Fmnt',             -63, 63,-50, 50),
+  ],
+
+  26: [ // Drone  (Block 25)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Decay',           'Decay',               0,127,  0,100),
+    S('Key',             'Key',                 ['E','F','F#','G','G#','A','A#','B','C','C#','D','D#']),
+    R('Input',           'Input',               0,127,  0,100),
+  ],
+
+  27: [ // Chord Resonator  (Block 26)
+    R('Dry/Wet',         'DryWet',              0,127,  0,100),
+    R('Decay',           'Decay',               0,127,  0,100),
+    R('Bright',          'Bright',              0,127,  0,100),
+    R('Spread',          'Spread',              0,127,  0,100),
+    S('Root',            'Root',                CHORD_KEY),
+    S('Type',            'Type',                ['MAJ','MIN','DIM','AUG','SUS4','CUST']),
+    R('Custom Note1',    'Note1',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note2',    'Note2',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note3',    'Note3',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note4',    'Note4',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note5',    'Note5',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note6',    'Note6',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note7',    'Note7',              -24, 24,-24, 24, 'CUST type only'),
+    R('Custom Note8',    'Note8',              -24, 24,-24, 24, 'CUST type only'),
+    R('Input',           'InputTrim',           0,127,  0,100),
+    T('Note1 On',        'NoteSw1'),
+    T('Note2 On',        'NoteSw2'),
+    T('Note3 On',        'NoteSw3'),
+    T('Note4 On',        'NoteSw4'),
+    T('Note5 On',        'NoteSw5'),
+    T('Note6 On',        'NoteSw6'),
+    T('Note7 On',        'NoteSw7'),
+    T('Note8 On',        'NoteSw8'),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// LFO / EG / EF parameters
+// ═══════════════════════════════════════════════════════════
+const LFO_PARAMS = [
+  S('Waveform',        'WAVE',         LFO_WAVE),
+  R('Frequency',       'FrEq',         0,127,   0,  1, 'Valid when Sync = OFF'),
+  T('Sync',            'SYnC'),
+  S('Sync Note',       'notE',         FREQ_NOTE,       'Valid when Sync = ON'),
+  R('Curve',           'CUrv',      -100,100,-100,100),
+  R('Fade',            'FAdE',         0,127,   0,9.9,  'Fade-in after reset'),
+  S('Reset',           'rESE',         ['oFF','1on','2on','12on']),
+];
+
+const EG_PARAMS = [
+  S('EG Type',         'tyPE',         ['GAtE','onSt'],          'Gate or 1-shot'),
+  R('Attack Time',     'AttA',         0,127,   0,127),
+  R('Release Time',    'rELE',         0,127,   0,127),
+  S('Gate Mode',       'GAtE',         ['1on','2on','12on','1or2','1Ad2'],
+    'Gate response based on finger state'),
+];
+
+const EF_PARAMS = [
+  S('Source',          'SoUr',         ['InPt','FX1','FX2','FX3','FX4','FX5']),
+  R('Attack',          'AttA',         0,127,   0,  1),
+  R('Release',         'rELE',         0,127,   0,  1),
+  S('Type',            'tyPE',         ['rMS','PEAk']),
+  R('Gain',            'GAIn',         0,100,   0,100),
+  R('Input Trim',      'InPt',         0,100,   0,100),
+];
+
+// Mixer p1~8 (p=0 = Effect Type is handled separately)
+const MIXER_PARAMS = [
+  R('Audio In',    'In',  0,127, 0,127),
+  R('FX1 → this', '1→',  0,127, 0,127),
+  R('FX2 → this', '2→',  0,127, 0,127),
+  R('FX3 → this', '3→',  0,127, 0,127),
+  R('FX4 → this', '4→',  0,127, 0,127),
+  R('FX5 → this', '5→',  0,127, 0,127),
+  R('Out Level',   'oUt', 0,127, 0,127),
+  R('Out Pan',     'Pan', -63,63,-50, 50),
+];
+
+// Virtual Patch: 5 params per patch (p=0~4)
+// index = 500 + 5*n + p
+const VP_PARAMS = [
+  T('On/Off',     '-'),
+  S('Source',     'SrCE',   VP_SOURCE),
+  { name:'Destination', disp:'dESt', type:'dest' },   // special two-level selector
+  R('Intensity',  '-',     -1,     1,-1,     1),
+  S('Polarity',   'PoLA',  ['+', '±'],
+    '+ = positive only / ± = bipolar (both directions)'),
+];
+
+// ═══════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════
+let midiAccess = null;
+let midiOutput = null;
+let curSlot      = 0;
+let curAlgo      = 0;
+const algoPerSlot = [0, 0, 0, 0, 0]; // track algorithm per FX slot
+
+// VP state: 32 patches × 5 params
+// [On(bool), Src(int), Dest({modIdx,parIdx}), Intensity(float), Polarity(int 0=± 1=+)]
+const vpState  = Array.from({length: 32}, () => [false, 0, {modIdx:0, parIdx:0}, 0, 0]);
+// LFO state: 4 LFOs × 7 params
+const lfoState = Array.from({length:  4}, () => new Array(7).fill(null));
+// EF state:  2 EFs  × 6 params
+const efState  = Array.from({length:  2}, () => new Array(6).fill(null));
+// FX state:  5 slots × 28 algos → sparse param arrays
+const fxState  = Array.from({length:  5}, () => ({}));
+// EG state:  4 EGs  × 4 params
+const egState  = Array.from({length:  4}, () => new Array(4).fill(null));
+// Mixer state: 5 slots × 8 params (p1~8; p0 = Effect Type tracked in algoPerSlot)
+const mixerState = Array.from({length: 5}, () => new Array(8).fill(null));
+// Library: parsed preset objects
+const library  = [];
+
+// ═══════════════════════════════════════════════════════════
+// DSP Usage
+// ═══════════════════════════════════════════════════════════
+
+// Fixed DSP % per algo ID — always MAX usage (device reserves peak DSP regardless of params)
+const DSP_USAGE_BASE = [
+   0, // 0: No Effect
+  32, // 1: Analog Osc
+  37, // 2: Sample Osc
+  11, // 3: Parametric EQ
+  28, // 4: Compressor
+  20, // 5: Filter
+  19, // 6: Isolator
+  18, // 7: Graphic EQ
+  15, // 8: Distortion
+  20, // 9: Decimator
+  37, // 10: Delay
+  32, // 11: Tape Echo
+  58, // 12: Chorus  (max: Voices=8)
+  25, // 13: Flanger
+  35, // 14: Phaser  (max: Notch=11)
+  14, // 15: Tremolo
+   9, // 16: Ring Mod
+  22, // 17: Pitch Shifter
+  27, // 18: Grain Shifter
+  39, // 19: Looper
+  20, // 20: Vinyl Break
+  43, // 21: Reverb
+  54, // 22: Shimmer
+  72, // 23: Early Reflection
+  77, // 24: IR Loader
+  79, // 25: Vocal FX
+  11, // 26: Drone String
+  28, // 27: Chord Resonator
+];
+const DSP_LIMIT = 101;
+
+// ═══════════════════════════════════════════════════════════
+// HELP DOCS — ここを編集して文章を追加・変更する
+// 各エントリ: { title: '表示名', content: 'HTML文字列' }
+// ═══════════════════════════════════════════════════════════
+const HELP_DOCS = [
+  {
+    title: 'User Guide',
+    content: `
+<h2>User Guide</h2>
+
+<h3>Getting Started</h3>
+<ol>
+  <li>Click <b>Connect MIDI</b> and allow MIDI access in the browser dialog</li>
+  <li>Select the KAOSS PAD V output port from the <b>OUT</b> dropdown</li>
+  <li>Set <b>MIDI Ch</b> to match the Global MIDI channel on your device</li>
+  <li>Edit parameters in each tab</li>
+  <li>Click <b>⬆ Send All</b> to send all parameters to the device</li>
+</ol>
+
+<h3>Tabs</h3>
+<table>
+  <tr><th>Tab</th><th>Description</th></tr>
+  <tr><td>FX Slots</td><td>Algorithm and parameters for FX slots 1–5</td></tr>
+  <tr><td>LFO</td><td>Waveform, rate, depth and more for LFO 1–4</td></tr>
+  <tr><td>EG</td><td>Envelope Generator 1–4</td></tr>
+  <tr><td>EF (Follower)</td><td>Envelope Follower 1–2</td></tr>
+  <tr><td>Mixer</td><td>Mixer settings for each slot</td></tr>
+  <tr><td>Virtual Patch</td><td>Modulation patches 1–32</td></tr>
+  <tr><td>Library</td><td>Load and send .preset files</td></tr>
+</table>
+
+<h3>Send Buttons</h3>
+<ul>
+  <li><b>⬆ Send All</b> — Send all parameters from all tabs at once</li>
+  <li><b>⬆ Send 1 Tab</b> — Send only the currently visible tab (also useful for re-sending values)</li>
+</ul>
+
+<h3>DSP Usage</h3>
+<p>The DSP bar in the header shows the total DSP usage across all 5 slots.
+Algorithms that would push the total to 101% or above are disabled in the dropdown.</p>
+<ul>
+  <li style="color:#00d4aa">■ Green (≤85%): Plenty of headroom</li>
+  <li style="color:#ffaa00">■ Yellow (86–100%): Getting close</li>
+  <li style="color:#ff4444">■ Red (≥101%): Over the limit</li>
+</ul>
+
+<h3>Virtual Patch — Curve Editor</h3>
+<p>Click the <b>Curve</b> card on any Virtual Patch to open the modal editor.</p>
+<ul>
+  <li><b>Click</b> — Add a control point</li>
+  <li><b>Drag</b> — Move a control point (sent to device on release)</li>
+  <li><b>Right-click</b> — Delete a control point</li>
+  <li><b>Init</b> — Reset to a straight line (0→0, 1→1)</li>
+  <li><b>Clear</b> — Remove all control points</li>
+</ul>
+
+<h3>Important Notes</h3>
+<ul>
+  <li>This editor requires <b>Google Chrome</b> or <b>Microsoft Edge</b> on PC/Mac</li>
+  <li>Mobile browsers are not supported (Web MIDI API unavailable)</li>
+  <li>Parameters are write-only — the editor cannot read the current state from the device</li>
+  <li>Always load a .preset file or configure parameters before sending</li>
+</ul>
+    `,
+  },
+  {
+    title: 'About',
+    content: `
+<h2>About</h2>
+<table>
+  <tr><th>Item</th><th>Details</th></tr>
+  <tr><td>Name</td><td>KAOSS PAD V Parameter Editor</td></tr>
+  <tr><td>Version</td><td>0.1.0</td></tr>
+  <tr><td>Target device</td><td>KORG KAOSS PAD V</td></tr>
+  <tr><td>Supported browsers</td><td>Google Chrome / Microsoft Edge (PC/Mac)</td></tr>
+  <tr><td>Web MIDI API</td><td>Required — not available on mobile browsers</td></tr>
+</table>
+<p>This is an unofficial third-party tool and is not affiliated with or endorsed by KORG.</p>
+    `,
+  },
+  {
+    title: 'Release Notes',
+    content: `
+<h2>Release Notes</h2>
+
+<h3>v0.1.0</h3>
+<ul>
+  <li>Initial release</li>
+  <li>Full parameter editing for FX / LFO / EG / EF / Mixer / Virtual Patch</li>
+  <li>Virtual Patch Curve (Mapper) GUI</li>
+  <li>.preset file import and send (Librarian)</li>
+  <li>DSP Usage display and algorithm selection restriction</li>
+</ul>
+    `,
+  },
+  {
+    title: 'License',
+    content: `
+<h2>License</h2>
+<p>MIT License</p>
+<p>Copyright (c) 2025 kaosstribe</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the software, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies.</p>
+<p><b>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.</b>
+The author is not responsible for any damage to your device caused by use of this editor.</p>
+<p>KORG and KAOSS PAD V are trademarks of KORG Inc. This editor is an unofficial tool and is not affiliated with KORG.</p>
+    `,
+  },
+];
+
+function getDspForSlot(slot) {
+  return DSP_USAGE_BASE[algoPerSlot[slot]] ?? 0;
+}
+
+function getDspForAlgo(algo, slot) {
+  return DSP_USAGE_BASE[algo] ?? 0;
+}
+
+function getTotalDsp() {
+  return [0, 1, 2, 3, 4].reduce((sum, s) => sum + getDspForSlot(s), 0);
+}
+
+function updateDspDisplay() {
+  const total = getTotalDsp();
+  const color = total >= DSP_LIMIT ? 'var(--red)' : total > 85 ? '#ffaa00' : 'var(--accent)';
+  const valEl = document.getElementById('dsp-val');
+  const barEl = document.getElementById('dsp-bar');
+  if (valEl) { valEl.textContent = `${total}%`; valEl.style.color = color; }
+  if (barEl) { barEl.style.width = `${Math.min(total, DSP_LIMIT)}%`; barEl.style.background = color; }
+  updateAlgoSelectorRestrictions();
+}
+
+function updateAlgoSelectorRestrictions() {
+  // FX tab algo selector
+  const fxSel = document.getElementById('algo-sel');
+  if (fxSel) {
+    const other = [0,1,2,3,4].filter(s => s !== curSlot)
+      .reduce((sum, s) => sum + getDspForSlot(s), 0);
+    Array.from(fxSel.options).forEach(opt => {
+      const ai = parseInt(opt.value);
+      const d  = getDspForAlgo(ai, curSlot);
+      const over = other + d > DSP_LIMIT;
+      opt.disabled = over;
+      opt.style.color = over ? 'var(--text-dim)' : '';
+      opt.title = `${d}% DSP` + (over ? ` — total ${other + d}% exceeds ${DSP_LIMIT}%` : '');
+    });
+  }
+  // Mixer Effect Type selectors (mixer-algo-0 ~ mixer-algo-4)
+  for (let slot = 0; slot < 5; slot++) {
+    const mSel = document.getElementById(`mixer-algo-${slot}`);
+    if (!mSel) continue;
+    const other = [0,1,2,3,4].filter(s => s !== slot)
+      .reduce((sum, s) => sum + getDspForSlot(s), 0);
+    Array.from(mSel.options).forEach(opt => {
+      const ai = parseInt(opt.value);
+      const d  = getDspForAlgo(ai, slot);
+      const over = other + d > DSP_LIMIT;
+      opt.disabled = over;
+      opt.style.color = over ? 'var(--text-dim)' : '';
+      opt.title = `${d}% DSP` + (over ? ` — total ${other + d}% exceeds ${DSP_LIMIT}%` : '');
+    });
+  }
+
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELP
+// ═══════════════════════════════════════════════════════════
+// Hidden container — Chrome translates these at page load time
+const _helpStore = document.createElement('div');
+_helpStore.style.display = 'none';
+document.body.appendChild(_helpStore);
+
+(function buildHelpMenu() {
+  const menu = document.getElementById('help-menu');
+  HELP_DOCS.forEach((doc, i) => {
+    // Pre-render content into hidden DOM so Chrome can translate it
+    const content = document.createElement('div');
+    content.id = `help-content-${i}`;
+    content.innerHTML = doc.content;
+    _helpStore.appendChild(content);
+
+    // Build menu item
+    const item = document.createElement('div');
+    item.textContent = doc.title;
+    item.style.cssText = 'padding:9px 16px;cursor:pointer;color:var(--text);font-size:13px;' +
+      'border-bottom:1px solid var(--border);white-space:nowrap';
+    item.onmouseenter = () => item.style.background = 'var(--surface)';
+    item.onmouseleave = () => item.style.background = '';
+    item.onclick = (e) => { e.stopPropagation(); openHelp(i); };
+    menu.appendChild(item);
+  });
+  if (menu.lastChild) menu.lastChild.style.borderBottom = 'none';
+})();
+
+function toggleHelp(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('help-menu');
+  const open = menu.style.display !== 'none';
+  menu.style.display = open ? 'none' : 'block';
+  if (!open) {
+    const close = () => { menu.style.display = 'none'; document.removeEventListener('click', close); };
+    document.addEventListener('click', close);
+  }
+}
+
+function openHelp(idx) {
+  document.getElementById('help-menu').style.display = 'none';
+  const doc = HELP_DOCS[idx];
+  document.getElementById('help-modal-title').textContent = doc.title;
+
+  // Move pre-rendered (already translated) content node into modal body
+  const modalBody = document.getElementById('help-modal-body');
+  // Return any previously shown content to the store
+  while (modalBody.firstChild) _helpStore.appendChild(modalBody.firstChild);
+  // Move requested content into modal
+  const content = document.getElementById(`help-content-${idx}`);
+  modalBody.appendChild(content);
+
+  document.getElementById('help-modal').style.display = 'flex';
+}
+
+function closeHelp(e) {
+  if (e && e.target !== document.getElementById('help-modal')) return;
+  // Return content node back to hidden store
+  const modalBody = document.getElementById('help-modal-body');
+  while (modalBody.firstChild) _helpStore.appendChild(modalBody.firstChild);
+  document.getElementById('help-modal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MIDI
+// ═══════════════════════════════════════════════════════════
+async function connectMIDI() {
+  try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: true });
+    midiAccess.onstatechange = populateOutputs;
+    populateOutputs();
+    setStatus('ok', 'MIDI OK — select output');
+    document.getElementById('out-wrap').style.display = 'flex';
+  } catch(e) {
+    setStatus('err', 'MIDI denied: ' + e.message);
+  }
+}
+
+function populateOutputs() {
+  const sel = document.getElementById('out-sel');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— select output —</option>';
+  for (const [id, port] of midiAccess.outputs) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = port.name;
+    if (id === prev) o.selected = true;
+    sel.appendChild(o);
+  }
+  if (midiAccess.outputs.size === 1) { sel.selectedIndex = 1; selectOutput(); }
+
+  // Wire up all inputs for monitoring
+  for (const [, port] of midiAccess.inputs) {
+    port.onmidimessage = (ev) => {
+      const hex = Array.from(ev.data)
+        .map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+    };
+  }
+}
+
+function selectOutput() {
+  const id = document.getElementById('out-sel').value;
+  midiOutput = id ? midiAccess.outputs.get(id) : null;
+  if (midiOutput) setStatus('ok', '✓ ' + midiOutput.name);
+}
+
+function setStatus(cls, msg) {
+  const el = document.getElementById('status');
+  el.className = cls; el.textContent = msg;
+}
+
+function onChChange() { /* channel read live in kpvHeader() */ }
+
+function getMidiCh() {
+  return parseInt(document.getElementById('midi-ch').value);
+}
+
+// ── Float → 5 MIDI bytes (32-bit IEEE 754, big-endian, 7-bit encoding) ──
+function floatTo5(v) {
+  const buf = new ArrayBuffer(4);
+  new DataView(buf).setFloat32(0, v, false);
+  const u = new DataView(buf).getUint32(0, false);
+  return [
+    (u >>> 25) & 0x7F,
+    (u >>> 18) & 0x7F,
+    (u >>> 11) & 0x7F,
+    (u >>>  4) & 0x7F,
+    ((u & 0x0F) << 3) & 0x7F
+  ];
+}
+
+// KORG 7-bit decode: 8 MIDI bytes → 7 data bytes (MSBs in first byte)  [kept for future use]
+function decode7bit(encoded) {
+  const out = [];
+  for (let i = 0; i < encoded.length; i += 8) {
+    const msbs = encoded[i];
+    for (let j = 1; j <= 7 && (i + j) < encoded.length; j++) {
+      out.push(encoded[i + j] | (((msbs >> (j - 1)) & 1) << 7));
+    }
+  }
+  return out;
+}
+
+
+
+function kpvHdr() {
+  return [0xF0, 0x42, 0x30 | getMidiCh(), 0x00, 0x01, 0x79];
+}
+
+// ── TX log ──
+function logTX(bytes) {
+  document.getElementById('tx-log').textContent =
+    Array.from(bytes).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+}
+
+// VE Mapper Change  (Func 72)
+// mode: 0=Remove, 1=Move, 2=RemoveAll, 3=Init, 7F=Add
+// mapperIdx: 0~31 (VP Patch 0~31)
+// pointIdx:  0~31
+function sendVEMapper(mode, mapperIdx, pointIdx, inVal, outVal) {
+  if (!midiOutput) return;
+  const msg = [
+    ...kpvHdr(), 0x72,
+    mode & 0x7F,
+    mapperIdx & 0x7F,
+    pointIdx  & 0x7F,
+    ...floatTo5(inVal),
+    ...floatTo5(outVal),
+    0xF7
+  ];
+  midiOutput.send(msg);
+  logTX(msg);
+}
+
+// VE Parameter Change  (Func 71)
+// index: 21-bit → 3 × 7-bit bytes
+function sendVE(index, floatVal) {
+  if (!midiOutput) return;
+  const msg = [
+    ...kpvHdr(), 0x71,
+    (index >> 14) & 0x7F,
+    (index >>  7) & 0x7F,
+     index        & 0x7F,
+    ...floatTo5(floatVal),
+    0xF7
+  ];
+  midiOutput.send(msg);
+  logTX(msg);
+}
+
+// ── Debug helpers ──
+function sendInquiry() {
+  if (!midiOutput) { alert('MIDIポートを選択してください'); return; }
+  // Universal Device Inquiry (any channel)
+  const msg = [0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7];
+  midiOutput.send(msg);
+  logTX(msg);
+}
+
+function sendTestCC() {
+  if (!midiOutput) { alert('MIDIポートを選択してください'); return; }
+  const ch = getMidiCh();
+  const msg = [0xB0 | ch, 0x01, 64];  // CC#1 = Mod Wheel
+  midiOutput.send(msg);
+  logTX(msg);
+}
+
+// ── Index calculators ──
+const idxFX    = (slot, algoId, p) => 1000 + 3200*slot + 64*ALGO_TO_BLOCK[algoId] + p;
+const idxLFO   = (n, p) => 100 + 9*n + p;
+const idxEG    = (n, p) => 200 + 4*n + p;
+const idxEF    = (n, p) => 300 + 6*n + p;
+const idxMixer = (n, p) => 400 + 9*n + p;
+const idxVP    = (n, p) => 500 + 5*n + p;
+
+// ── Display → internal float ──
+function d2i(dispVal, p) {
+  if (p.type !== 'range') return dispVal;
+  const { dMin, dMax, iMin, iMax } = p;
+  if (dMax === dMin) return iMin;
+  return iMin + ((dispVal - dMin) / (dMax - dMin)) * (iMax - iMin);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI — generic param grid renderer
+// ═══════════════════════════════════════════════════════════
+
+// Append param cards to an existing container element (does not reset innerHTML)
+function appendParamsToEl(params, c, indexFn, stateGet=null, stateSet=null) {
+  params.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'pcard';
+    card.dataset.paramName = p.name;
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'pname';
+    nameEl.textContent = `${i+1}.  ${p.name}`;
+    card.appendChild(nameEl);
+
+    const dispEl = document.createElement('div');
+    dispEl.className = 'pdisplay';
+    dispEl.textContent = p.disp;
+    card.appendChild(dispEl);
+
+    const veIdx = indexFn(i);
+
+    if (p.type === 'range') {
+      const hasDecimals = (p.dMin % 1 !== 0) || (p.dMax % 1 !== 0) ||
+                          (Math.abs(p.dMax - p.dMin) < 5);
+      const step  = hasDecimals ? 0.01 : 1;
+      const defV  = Math.min(Math.max(0, p.dMin), p.dMax);
+      const initV = stateGet ? (stateGet(i) ?? defV) : defV;
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = p.dMin; slider.max = p.dMax;
+      slider.step = step;  slider.value = initV;
+      slider.dataset.veIdx  = veIdx;
+      slider.dataset.iMin   = p.iMin;
+      slider.dataset.iMax   = p.iMax;
+      slider.dataset.dMin   = p.dMin;
+      slider.dataset.dMax   = p.dMax;
+
+      const valEl = document.createElement('div');
+      valEl.className = 'pval';
+      valEl.textContent = fmtVal(initV, step);
+
+      slider.oninput = () => {
+        const dv = parseFloat(slider.value);
+        valEl.textContent = fmtVal(dv, step);
+        stateSet?.(i, dv);
+        sendVE(veIdx, d2i(dv, p));
+      };
+      card.appendChild(slider);
+      card.appendChild(valEl);
+
+    } else if (p.type === 'select') {
+      const initV = stateGet ? (stateGet(i) ?? 0) : 0;
+      const sel = document.createElement('select');
+      sel.dataset.veIdx = veIdx;
+      (p.opts || []).forEach((opt, oi) => {
+        const o = document.createElement('option');
+        o.value = oi; o.textContent = opt;
+        sel.appendChild(o);
+      });
+      sel.value = initV;
+      sel.onchange = () => {
+        const v = parseInt(sel.value);
+        stateSet?.(i, v);
+        sendVE(veIdx, v);
+      };
+      card.appendChild(sel);
+
+    } else if (p.type === 'toggle') {
+      const initV = stateGet ? (stateGet(i) ?? false) : false;
+      const btn = document.createElement('div');
+      btn.className = 'toggle' + (initV ? ' on' : '');
+      btn.textContent = initV ? 'ON' : 'OFF';
+      btn.dataset.veIdx = veIdx;
+      btn.onclick = () => {
+        const on = btn.classList.toggle('on');
+        btn.textContent = on ? 'ON' : 'OFF';
+        stateSet?.(i, on);
+        sendVE(veIdx, on ? 1.0 : 0.0);
+      };
+      card.appendChild(btn);
+
+    } else if (p.type === 'dest') {
+      const mods = buildDestModules();
+
+      const modSel = document.createElement('select');
+      modSel.style.cssText = 'width:100%;margin-bottom:5px;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 6px;border-radius:4px;font-size:12px';
+
+      const parSel = document.createElement('select');
+      parSel.style.cssText = 'width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 6px;border-radius:4px;font-size:12px';
+
+      const idxEl = document.createElement('div');
+      idxEl.style.cssText = 'font-size:10px;color:var(--text-dim);margin-top:4px;text-align:right';
+
+      mods.forEach((mod, mi) => {
+        const o = document.createElement('option');
+        o.value = mi;
+        o.textContent = mod.label;
+        modSel.appendChild(o);
+      });
+
+      const initDest = stateGet ? (stateGet(i) ?? {modIdx:0, parIdx:0}) : {modIdx:0, parIdx:0};
+
+      function populateParSel(targetParIdx = 0, noSend = false) {
+        const entries = mods[parseInt(modSel.value)].entries;
+        parSel.innerHTML = '';
+        if (entries.length === 0) {
+          const o = document.createElement('option'); o.textContent = '(no params)'; parSel.appendChild(o);
+        } else {
+          entries.forEach((e, ei) => {
+            const o = document.createElement('option'); o.value = ei; o.textContent = e.name; parSel.appendChild(o);
+          });
+        }
+        parSel.value = targetParIdx;
+        onDestChange(noSend);
+      }
+
+      function onDestChange(noSend = false) {
+        const entries = mods[parseInt(modSel.value)].entries;
+        const pi = parseInt(parSel.value) || 0;
+        const destIdx = entries[pi] ? entries[pi].idx : 0;
+        idxEl.textContent = `VE idx: ${destIdx}`;
+        modSel.dataset.veIdx = veIdx;
+        modSel.dataset.destComputed = destIdx;
+        stateSet?.(i, {modIdx: parseInt(modSel.value), parIdx: parseInt(parSel.value)});
+        if (!noSend) sendVE(veIdx, destIdx);
+      }
+
+      modSel.onchange = () => populateParSel(0);
+      parSel.onchange = () => onDestChange();
+      // Restore saved state — suppress send during initialization
+      modSel.value = initDest.modIdx;
+      populateParSel(initDest.parIdx, true);
+
+      card.appendChild(modSel);
+      card.appendChild(parSel);
+      card.appendChild(idxEl);
+    }
+
+    if (p.note) {
+      const n = document.createElement('div');
+      n.className = 'pnote'; n.textContent = p.note;
+      card.appendChild(n);
+    }
+
+    c.appendChild(card);
+  });
+}
+
+function renderParams(params, containerId, indexFn, stateGet=null, stateSet=null) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = '';
+  if (!params || params.length === 0) {
+    c.innerHTML = '<p class="empty-msg">No parameters for this selection.</p>';
+    return;
+  }
+  appendParamsToEl(params, c, indexFn, stateGet, stateSet);
+}
+
+function fmtVal(v, step) {
+  return step < 1 ? v.toFixed(2) : Math.round(v).toString();
+}
+
+// ═══════════════════════════════════════════════════════════
+// FX panel
+// ═══════════════════════════════════════════════════════════
+function initAlgoSelector() {
+  const sel = document.getElementById('algo-sel');
+  ALGO_NAMES.forEach((name, i) => {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = `${String(i).padStart(2,' ')}: ${name}`;
+    sel.appendChild(o);
+  });
+}
+
+function selSlot(slot, btn) {
+  curSlot = slot;
+  // Restore the algorithm that was set for this slot
+  curAlgo = algoPerSlot[slot];
+  document.getElementById('algo-sel').value = curAlgo;
+  document.querySelectorAll('#panel-fx .bar:first-child .btn')
+    .forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  renderFX();
+  updateDspDisplay();
+}
+
+function selAlgo(id) {
+  curAlgo = id;
+  algoPerSlot[curSlot] = id;
+  sendVE(idxMixer(curSlot, 0), id);
+  // Sync → Mixer Effect Type select
+  const mixSel = document.getElementById(`mixer-algo-${curSlot}`);
+  if (mixSel) mixSel.value = id;
+  renderFX();
+  if (isVPActive()) renderVP();
+  updateDspDisplay();
+}
+
+// Called when Mixer Effect Type changes
+function onMixerAlgoChange(slot, algoId) {
+  algoPerSlot[slot] = algoId;
+  sendVE(idxMixer(slot, 0), algoId);
+  // Sync → FX Slot panel if this slot is currently shown
+  if (slot === curSlot) {
+    curAlgo = algoId;
+    document.getElementById('algo-sel').value = algoId;
+    renderFX();
+  }
+  if (isVPActive()) renderVP();
+  updateDspDisplay();
+}
+
+// Build destination module list matching device VP_DEST_CAT order (13 modules):
+//   FX1~5, LFO1~4, EG (merged), EF (merged), Mixer (merged), VP (merged)
+function buildDestModules() {
+  const mods = [];
+
+  // FX Slot 1~5 — params depend on the algorithm currently in each slot
+  for (let s = 0; s < 5; s++) {
+    const algo = algoPerSlot[s];
+    const params = ALGO_PARAMS[algo] || [];
+    if (params.length === 0) {
+      mods.push({ label: `FX${s+1} — No Effect`, entries: [] });
+    } else {
+      mods.push({
+        label: `FX${s+1} — ${ALGO_NAMES[algo]}`,
+        entries: params.map((p, pi) => ({
+          name: p.name,
+          idx:  idxFX(s, algo, pi)
+        }))
+      });
+    }
+  }
+
+  // LFO 1~4 — individual (device shows each separately)
+  for (let n = 0; n < 4; n++) {
+    mods.push({
+      label: `LFO ${n+1}`,
+      entries: LFO_PARAMS.map((p, pi) => ({ name: p.name, idx: idxLFO(n, pi) }))
+    });
+  }
+
+  // EG — single merged category (EG1~4 × 4 params = 16 entries)
+  {
+    const entries = [];
+    for (let n = 0; n < 4; n++)
+      EG_PARAMS.forEach((p, pi) =>
+        entries.push({ name: `EG${n+1} ${p.name}`, idx: idxEG(n, pi) }));
+    mods.push({ label: 'EG', entries });
+  }
+
+  // EF — single merged category (EF1~2 × 6 params = 12 entries)
+  {
+    const entries = [];
+    for (let n = 0; n < 2; n++)
+      EF_PARAMS.forEach((p, pi) =>
+        entries.push({ name: `EF${n+1} ${p.name}`, idx: idxEF(n, pi) }));
+    mods.push({ label: 'EF', entries });
+  }
+
+  // Mixer — single merged category (Slot1~5 × 9 params = 45 entries)
+  {
+    const mixNames = [
+      'Effect Type','Audio In',
+      'FX1→this','FX2→this','FX3→this','FX4→this','FX5→this',
+      'Out Level','Out Pan'
+    ];
+    const entries = [];
+    for (let n = 0; n < 5; n++)
+      mixNames.forEach((name, pi) =>
+        entries.push({ name: `FX${n+1} ${name}`, idx: idxMixer(n, pi) }));
+    mods.push({ label: 'Mixer', entries });
+  }
+
+  // VP — single merged category (Patch1~32 × 5 params = 160 entries)
+  {
+    const vpNames = ['On/Off', 'Source', 'Destination', 'Intensity', 'Polarity'];
+    const entries = [];
+    for (let n = 0; n < 32; n++)
+      vpNames.forEach((name, pi) =>
+        entries.push({ name: `Patch${n+1} ${name}`, idx: idxVP(n, pi) }));
+    mods.push({ label: 'VP', entries });
+  }
+
+  return mods;
+}
+
+function renderFX() {
+  if (!fxState[curSlot][curAlgo]) fxState[curSlot][curAlgo] = [];
+  const st = fxState[curSlot][curAlgo];
+  renderParams(
+    ALGO_PARAMS[curAlgo],
+    'fx-params',
+    (i) => idxFX(curSlot, curAlgo, i),
+    (i) => st[i] ?? null,
+    (i, v) => { st[i] = v; updateDspDisplay(); }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// LFO / EG / EF / VP panels — all units on one page
+// ═══════════════════════════════════════════════════════════
+function makeSdiv(label) {
+  const d = document.createElement('div');
+  d.className = 'sdiv'; d.textContent = label;
+  return d;
+}
+
+function renderLFO() {
+  const c = document.getElementById('lfo-params');
+  c.innerHTML = '';
+  for (let n = 0; n < 4; n++) {
+    c.appendChild(makeSdiv(`LFO ${n + 1}`));
+    const st = lfoState[n];
+    appendParamsToEl(LFO_PARAMS, c, (i) => idxLFO(n, i),
+      (i) => st[i], (i, v) => { st[i] = v; });
+  }
+}
+function renderEG() {
+  const c = document.getElementById('eg-params');
+  c.innerHTML = '';
+  for (let n = 0; n < 4; n++) {
+    c.appendChild(makeSdiv(`EG ${n + 1}`));
+    const st = egState[n];
+    appendParamsToEl(EG_PARAMS, c, (i) => idxEG(n, i),
+      (i) => st[i], (i, v) => { st[i] = v; });
+  }
+}
+function renderEF() {
+  const c = document.getElementById('ef-params');
+  c.innerHTML = '';
+  for (let n = 0; n < 2; n++) {
+    c.appendChild(makeSdiv(`EF ${n + 1}`));
+    const st = efState[n];
+    appendParamsToEl(EF_PARAMS, c, (i) => idxEF(n, i),
+      (i) => st[i], (i, v) => { st[i] = v; });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Mixer panel
+// ═══════════════════════════════════════════════════════════
+// 9 params per FX slot (p=0~8):
+//   0: Effect Type (select)
+//   1: Audio In    (range 0~127 → 0~127)
+//   2~6: FX1~5 Out Level (range)
+//   7: Out Level   (range)
+//   8: Out Pan     (range -50~50)
+function renderMixer() {
+  const c = document.getElementById('mixer-params');
+  c.innerHTML = '';
+
+  for (let slot = 0; slot < 5; slot++) {
+    const s = slot;
+
+    const div = document.createElement('div');
+    div.className = 'sdiv';
+    div.textContent = `FX Slot ${slot + 1}`;
+    c.appendChild(div);
+
+    // ── p=0: Effect Type — manual card with stable ID for two-way sync ──
+    const etCard = document.createElement('div');
+    etCard.className = 'pcard';
+    const etName = document.createElement('div');
+    etName.className = 'pname'; etName.textContent = '1.  Effect Type';
+    const etDisp = document.createElement('div');
+    etDisp.className = 'pdisplay'; etDisp.textContent = '-';
+    const etSel = document.createElement('select');
+    etSel.id = `mixer-algo-${slot}`;
+    etSel.style.width = '100%';
+    ALGO_NAMES.forEach((name, ai) => {
+      const o = document.createElement('option');
+      o.value = ai; o.textContent = `${String(ai).padStart(2,' ')}: ${name}`;
+      etSel.appendChild(o);
+    });
+    etSel.value = algoPerSlot[slot];
+    etSel.onchange = () => onMixerAlgoChange(slot, parseInt(etSel.value));
+    etCard.appendChild(etName); etCard.appendChild(etDisp); etCard.appendChild(etSel);
+    c.appendChild(etCard);
+
+    // ── p=1~8: remaining params (state-backed) ──
+    appendParamsToEl(MIXER_PARAMS, c, (i) => idxMixer(slot, i + 1),
+      (i) => mixerState[slot][i], (i, v) => { mixerState[slot][i] = v; });
+  }
+  updateDspDisplay();  // apply restrictions to freshly created mixer-algo-* selects
+}
+
+// Render params directly into a given container element (no innerHTML reset)
+function renderParamsInto(params, container, indexFn) {
+  params.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'pcard';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'pname';
+    nameEl.textContent = `${i+1}.  ${p.name}`;
+    card.appendChild(nameEl);
+
+    if (p.type === 'range') {
+      const step = (p.dMin % 1 !== 0 || p.dMax <= 1) ? 0.01 : 1;
+      const defV = Math.min(Math.max(0, p.dMin), p.dMax);
+      const slider = document.createElement('input');
+      slider.type = 'range'; slider.min = p.dMin; slider.max = p.dMax;
+      slider.step = step; slider.value = defV;
+      const valEl = document.createElement('div');
+      valEl.className = 'pval'; valEl.textContent = fmtVal(defV, step);
+      slider.oninput = () => {
+        const dv = parseFloat(slider.value);
+        valEl.textContent = fmtVal(dv, step);
+        sendVE(indexFn(i), d2i(dv, p));
+      };
+      card.appendChild(slider); card.appendChild(valEl);
+
+    } else if (p.type === 'select') {
+      const sel = document.createElement('select');
+      (p.opts || []).forEach((opt, oi) => {
+        const o = document.createElement('option');
+        o.value = oi; o.textContent = opt; sel.appendChild(o);
+      });
+      sel.onchange = () => sendVE(indexFn(i), parseInt(sel.value));
+      card.appendChild(sel);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Send helpers
+// ═══════════════════════════════════════════════════════════
+
+// Send params from a state array (skips null = never-edited entries)
+function sendParamsFromState(params, indexFn, state) {
+  if (!params || !state) return 0;
+  let count = 0;
+  params.forEach((p, i) => {
+    const sv = state[i];
+    if (sv === null || sv === undefined) return;
+    const veIdx = indexFn(i);
+    if (p.type === 'range') {
+      sendVE(veIdx, d2i(sv, p));
+    } else if (p.type === 'select') {
+      sendVE(veIdx, sv);
+    } else if (p.type === 'toggle') {
+      sendVE(veIdx, sv ? 1.0 : 0.0);
+    } else if (p.type === 'dest') {
+      const mods = buildDestModules();
+      const entries = (mods[sv.modIdx] || {}).entries || [];
+      const destIdx = (entries[sv.parIdx] || {}).idx ?? 0;
+      sendVE(veIdx, destIdx);
+    }
+    count++;
+  });
+  return count;
+}
+
+// Send controls inside a DOM scope element
+function sendDomControls(scope) {
+  let count = 0;
+  scope.querySelectorAll('input[type=range][data-ve-idx]').forEach(el => {
+    const idx = parseInt(el.dataset.veIdx);
+    const dv  = parseFloat(el.value);
+    const iv  = d2i(dv, {
+      type:'range',
+      dMin: +el.dataset.dMin, dMax: +el.dataset.dMax,
+      iMin: +el.dataset.iMin, iMax: +el.dataset.iMax
+    });
+    sendVE(idx, iv);
+    count++;
+  });
+  scope.querySelectorAll('select[data-ve-idx]:not([data-dest-computed])').forEach(el => {
+    sendVE(parseInt(el.dataset.veIdx), parseInt(el.value));
+    count++;
+  });
+  scope.querySelectorAll('.toggle[data-ve-idx]').forEach(el => {
+    sendVE(parseInt(el.dataset.veIdx), el.classList.contains('on') ? 1.0 : 0.0);
+    count++;
+  });
+  scope.querySelectorAll('select[data-dest-computed]').forEach(el => {
+    sendVE(parseInt(el.dataset.veIdx), parseInt(el.dataset.destComputed));
+    count++;
+  });
+  return count;
+}
+
+// SEND 1 TAB — active panel only (what you see)
+function sendOneTab() {
+  if (!midiOutput) { alert('MIDIポートを選択してください'); return; }
+  const panel = document.querySelector('.panel.active');
+  if (!panel) return;
+  const count = sendDomControls(panel);
+  document.getElementById('tx-log').textContent = `[Send Tab] ${count} params sent`;
+}
+
+// SEND ALL — iterate state arrays + EG/Mixer DOM
+function sendAll() {
+  if (!midiOutput) { alert('MIDIポートを選択してください'); return; }
+  let count = 0;
+
+  // FX: all edited slot × algo combinations
+  for (let slot = 0; slot < 5; slot++) {
+    for (const [algoId, st] of Object.entries(fxState[slot])) {
+      count += sendParamsFromState(ALGO_PARAMS[+algoId], (i) => idxFX(slot, +algoId, i), st);
+    }
+  }
+
+  // LFO: all 4 units
+  for (let n = 0; n < 4; n++) {
+    count += sendParamsFromState(LFO_PARAMS, (i) => idxLFO(n, i), lfoState[n]);
+  }
+
+  // EF: all 2 units
+  for (let n = 0; n < 2; n++) {
+    count += sendParamsFromState(EF_PARAMS, (i) => idxEF(n, i), efState[n]);
+  }
+
+  // VP: all 32 patches
+  for (let n = 0; n < 32; n++) {
+    count += sendParamsFromState(VP_PARAMS, (i) => idxVP(n, i), vpState[n]);
+  }
+
+  // EG: 4 units from state
+  for (let n = 0; n < 4; n++)
+    count += sendParamsFromState(EG_PARAMS, (i) => idxEG(n, i), egState[n]);
+
+  // Mixer: Effect Type (p0) from algoPerSlot + p1~8 from state
+  for (let n = 0; n < 5; n++) {
+    sendVE(idxMixer(n, 0), algoPerSlot[n]); count++;
+    count += sendParamsFromState(MIXER_PARAMS, (i) => idxMixer(n, i + 1), mixerState[n]);
+  }
+
+  document.getElementById('tx-log').textContent = `[Send All] ${count} params sent`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VP Curve / Mapper
+// ═══════════════════════════════════════════════════════════
+
+// Mapper state: 32 patches × array of [inVal, outVal] pairs (always sorted by inVal)
+const mapperState = Array.from({length: 32}, () => [[0, 0], [1, 1]]);
+
+// ── Draw curve on any canvas ──
+function drawCurve(canvas, points, opts = {}) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const PAD = opts.pad ?? 8;
+  const uw = W - 2*PAD, uh = H - 2*PAD;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, W, H);
+  // Grid
+  ctx.strokeStyle = '#2e2e2e';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const gx = PAD + i*uw/4, gy = PAD + i*uh/4;
+    ctx.beginPath(); ctx.moveTo(gx, PAD); ctx.lineTo(gx, PAD+uh); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD, gy); ctx.lineTo(PAD+uw, gy); ctx.stroke();
+  }
+  if (!points.length) return;
+  const sorted = [...points].sort((a, b) => a[0] - b[0]);
+  const px = v => PAD + v * uw;
+  const py = v => PAD + (1 - v) * uh;
+  // Curve line
+  ctx.strokeStyle = '#00d4aa';
+  ctx.lineWidth = opts.mini ? 1.5 : 2;
+  ctx.beginPath();
+  sorted.forEach(([iv, ov], i) =>
+    i === 0 ? ctx.moveTo(px(iv), py(ov)) : ctx.lineTo(px(iv), py(ov)));
+  ctx.stroke();
+  // Control points
+  const r = opts.mini ? 2.5 : 5;
+  sorted.forEach(([iv, ov], i) => {
+    ctx.beginPath();
+    ctx.arc(px(iv), py(ov), r, 0, Math.PI * 2);
+    ctx.fillStyle = (i === opts.activeIdx) ? '#ffcc00' : '#e0e0e0';
+    ctx.fill();
+  });
+}
+
+// ── Mini curve card (added to VP pgrid) ──
+function makeCurveMini(n) {
+  const card = document.createElement('div');
+  card.className = 'pcard';
+  card.style.cursor = 'pointer';
+  card.title = 'Click to edit Curve';
+  card.dataset.curvePatch = n;
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'pname';
+  nameEl.textContent = '6.  Curve';
+  card.appendChild(nameEl);
+
+  const dispEl = document.createElement('div');
+  dispEl.className = 'pdisplay';
+  dispEl.textContent = 'CUrv';
+  card.appendChild(dispEl);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 160; canvas.height = 80;
+  canvas.style.cssText = 'display:block;width:100%;margin-top:6px;border-radius:3px;border:1px solid var(--border)';
+  card.appendChild(canvas);
+  drawCurve(canvas, mapperState[n], {mini: true, pad: 6});
+
+  card.onclick = () => openCurveModal(n);
+  return card;
+}
+
+function refreshMiniCurve(n) {
+  document.querySelectorAll(`[data-curve-patch="${n}"] canvas`).forEach(cv =>
+    drawCurve(cv, mapperState[n], {mini: true, pad: 6}));
+}
+
+// ── Modal state ──
+let curveEditPatch = -1;
+let curveDragPt    = null;   // reference to the [in, out] pair being dragged
+let curveDragging  = false;
+const CURVE_PAD    = 20;
+
+function openCurveModal(n) {
+  curveEditPatch = n;
+  curveDragPt = null; curveDragging = false;
+  document.getElementById('curve-modal-title').textContent = `Patch ${n + 1} — Curve`;
+  document.getElementById('curve-modal').classList.add('open');
+  redrawModalCanvas();
+}
+
+function closeCurveModal() {
+  document.getElementById('curve-modal').classList.remove('open');
+  curveEditPatch = -1; curveDragPt = null;
+}
+
+function redrawModalCanvas() {
+  const canvas = document.getElementById('curve-modal-canvas');
+  const sorted = [...mapperState[curveEditPatch]].sort((a, b) => a[0] - b[0]);
+  const ai = curveDragPt ? sorted.indexOf(curveDragPt) : -1;
+  drawCurve(canvas, sorted, {pad: CURVE_PAD, activeIdx: ai});
+}
+
+function curvePxToVal(e, canvas) {
+  const r = canvas.getBoundingClientRect();
+  const cx = e.clientX - r.left, cy = e.clientY - r.top;
+  const uw = canvas.width  - 2*CURVE_PAD;
+  const uh = canvas.height - 2*CURVE_PAD;
+  return {
+    iv: Math.max(0, Math.min(1, (cx - CURVE_PAD) / uw)),
+    ov: Math.max(0, Math.min(1, 1 - (cy - CURVE_PAD) / uh)),
+    cx, cy,
+  };
+}
+
+function curveHitTest(cx, cy, canvas) {
+  const pts = mapperState[curveEditPatch];
+  const uw  = canvas.width  - 2*CURVE_PAD;
+  const uh  = canvas.height - 2*CURVE_PAD;
+  for (const pt of pts) {
+    const ppx = CURVE_PAD + pt[0] * uw;
+    const ppy = CURVE_PAD + (1 - pt[1]) * uh;
+    if (Math.hypot(cx - ppx, cy - ppy) <= 10) return pt;
+  }
+  return null;
+}
+
+async function sendMapperFull(n) {
+  if (!midiOutput) return;
+  sendVEMapper(0x02, n, 0, 0, 0);  // RemoveAll
+  await new Promise(r => setTimeout(r, 10));
+  const pts = [...mapperState[n]].sort((a, b) => a[0] - b[0]);
+  for (let i = 0; i < pts.length; i++) {
+    sendVEMapper(0x7F, n, i, pts[i][0], pts[i][1]);
+    if (i < pts.length - 1) await new Promise(r => setTimeout(r, 10));
+  }
+}
+
+function curveCmdInit() {
+  if (curveEditPatch < 0) return;
+  sendVEMapper(0x03, curveEditPatch, 0, 0, 0);
+  mapperState[curveEditPatch] = [[0, 0], [1, 1]];
+  refreshMiniCurve(curveEditPatch);
+  redrawModalCanvas();
+}
+
+function curveCmdClear() {
+  if (curveEditPatch < 0) return;
+  sendVEMapper(0x02, curveEditPatch, 0, 0, 0);
+  mapperState[curveEditPatch] = [];
+  refreshMiniCurve(curveEditPatch);
+  redrawModalCanvas();
+}
+
+// ── Modal canvas event handlers ──
+function curveMousedown(e) {
+  if (curveEditPatch < 0 || e.button !== 0) return;
+  const canvas = document.getElementById('curve-modal-canvas');
+  const {iv, ov, cx, cy} = curvePxToVal(e, canvas);
+  const hit = curveHitTest(cx, cy, canvas);
+  if (hit) {
+    curveDragPt = hit; curveDragging = false;
+  } else {
+    const newPt = [iv, ov];
+    mapperState[curveEditPatch].push(newPt);
+    mapperState[curveEditPatch].sort((a, b) => a[0] - b[0]);
+    sendMapperFull(curveEditPatch);
+    refreshMiniCurve(curveEditPatch);
+    redrawModalCanvas();
+  }
+}
+
+function curveMousemove(e) {
+  if (!curveDragPt) return;
+  const canvas = document.getElementById('curve-modal-canvas');
+  const {iv, ov} = curvePxToVal(e, canvas);
+  curveDragPt[0] = iv;
+  curveDragPt[1] = ov;
+  curveDragging = true;
+  redrawModalCanvas();
+}
+
+function curveMouseup(e) {
+  if (curveDragPt && curveDragging) {
+    mapperState[curveEditPatch].sort((a, b) => a[0] - b[0]);
+    sendMapperFull(curveEditPatch);
+    refreshMiniCurve(curveEditPatch);
+    redrawModalCanvas();
+  }
+  curveDragPt = null; curveDragging = false;
+}
+
+function curveContextmenu(e) {
+  e.preventDefault();
+  if (curveEditPatch < 0) return;
+  const canvas = document.getElementById('curve-modal-canvas');
+  const r = canvas.getBoundingClientRect();
+  const hit = curveHitTest(e.clientX - r.left, e.clientY - r.top, canvas);
+  if (hit) {
+    const pts = mapperState[curveEditPatch];
+    pts.splice(pts.indexOf(hit), 1);
+    sendMapperFull(curveEditPatch);
+    refreshMiniCurve(curveEditPatch);
+    redrawModalCanvas();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Virtual Patch panel — all 32 patches on one page
+// ═══════════════════════════════════════════════════════════
+function renderVP() {
+  const c = document.getElementById('vp-params');
+  c.innerHTML = '';
+  for (let n = 0; n < 32; n++) {
+    c.appendChild(makeSdiv(`Patch ${n + 1}`));
+    const st = vpState[n];
+    appendParamsToEl(VP_PARAMS, c, (i) => idxVP(n, i),
+      (i) => st[i], (i, v) => { st[i] = v; });
+    c.appendChild(makeCurveMini(n));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Librarian
+// ═══════════════════════════════════════════════════════════
+
+// Inverse of d2i: internal float → display value
+function i2d(iv, p) {
+  if (!p || p.type !== 'range') return iv;
+  const { dMin, dMax, iMin, iMax } = p;
+  if (iMax === iMin) return dMin;
+  return dMin + (iv - iMin) / (iMax - iMin) * (dMax - dMin);
+}
+
+// VE index → VP destination {modIdx, parIdx}
+function veIdxToDestObj(veIdx) {
+  const mods = buildDestModules();
+  for (let mi = 0; mi < mods.length; mi++) {
+    const entries = mods[mi].entries || [];
+    for (let pi = 0; pi < entries.length; pi++) {
+      if (entries[pi].idx === veIdx) return { modIdx: mi, parIdx: pi };
+    }
+  }
+  return { modIdx: 0, parIdx: 0 };
+}
+
+// Parse .preset binary → preset object
+function parsePreset(buf, filename) {
+  if (buf.byteLength < 10085) return null;
+  const v = new DataView(buf);
+  const f = [];
+  for (let i = 0; i < 2518; i++) f.push(v.getFloat32(13 + i * 4, true));
+
+  // Mixer starts at float[151] (float[150] is a separator = 0.0).
+  // Effect Type (p0) of each Mixer slot = algo ID for that FX slot.
+  const algos = Array.from({length: 5}, (_, s) => Math.round(f[151 + s * 9]));
+
+  return {
+    filename,
+    algos,
+    fx   : Array.from({length:  5}, (_, s) => f.slice(s*30,      s*30+30)),
+    mixer: Array.from({length:  5}, (_, u) => f.slice(151+u*9,   151+u*9+9)),
+    lfo  : Array.from({length:  4}, (_, u) => f.slice(196+u*9,   196+u*9+9)),
+    eg   : Array.from({length:  4}, (_, u) => f.slice(232+u*4,   232+u*4+4)),
+    ef   : Array.from({length:  2}, (_, u) => f.slice(248+u*6,   248+u*6+6)),
+    vp   : Array.from({length: 32}, (_, n) => f.slice(260+n*5,   260+n*5+5)),
+    // VP Mapper Structures: byte offset 1693, 32 mappers × 260 bytes each
+    // Each mapper: 32 points × 8 bytes (InValue float32LE + OutValue float32LE)
+    //              + 1 byte PointCount + 3 bytes Reserved
+    mapper: Array.from({length: 32}, (_, n) => {
+      const base = 1693 + n * 260;  // byte offset in file
+      const count = new Uint8Array(buf)[base + 256];
+      const points = [];
+      for (let p = 0; p < count && p < 32; p++) {
+        const off = base + p * 8;
+        points.push([v.getFloat32(off, true), v.getFloat32(off + 4, true)]);
+      }
+      return points;  // array of [inVal, outVal] pairs
+    }),
+  };
+}
+
+// Load preset into editor state + send to device
+function loadPreset(preset) {
+  if (!preset) return;
+
+  // FX
+  for (let s = 0; s < 5; s++) {
+    const algo = preset.algos[s];
+    algoPerSlot[s] = algo;
+    if (!fxState[s][algo]) fxState[s][algo] = [];
+    (ALGO_PARAMS[algo] || []).forEach((p, i) => {
+      if (i < 30) fxState[s][algo][i] = i2d(preset.fx[s][i], p);
+    });
+  }
+  // LFO
+  for (let u = 0; u < 4; u++)
+    LFO_PARAMS.forEach((p, i) => { lfoState[u][i] = i2d(preset.lfo[u][i], p); });
+  // EG
+  for (let u = 0; u < 4; u++)
+    EG_PARAMS.forEach((p, i) => { egState[u][i] = i2d(preset.eg[u][i], p); });
+  // EF
+  for (let u = 0; u < 2; u++)
+    EF_PARAMS.forEach((p, i) => { efState[u][i] = i2d(preset.ef[u][i], p); });
+  // Mixer p1~8
+  for (let u = 0; u < 5; u++)
+    MIXER_PARAMS.forEach((p, i) => { mixerState[u][i] = i2d(preset.mixer[u][i + 1], p); });
+  // VP
+  for (let n = 0; n < 32; n++) {
+    const [onF, srcF, destF, depF, polF] = preset.vp[n];
+    vpState[n] = [!!onF, Math.round(srcF), veIdxToDestObj(destF), i2d(depF, VP_PARAMS[3]), Math.round(polF)];
+    mapperState[n] = preset.mapper[n].map(pt => [...pt]);  // deep copy
+  }
+
+  // Sync UI
+  curSlot = 0; curAlgo = algoPerSlot[0];
+  document.getElementById('algo-sel').value = curAlgo;
+  renderFX(); renderLFO(); renderEG(); renderEF(); renderMixer(); renderVP();
+  updateDspDisplay();
+
+  // Send to device
+  sendPresetToDevice(preset);
+  setStatus('ok', `✓ Loaded: ${preset.filename}`);
+}
+
+// Send all preset values with real delays to avoid device buffer overflow.
+// Uses async/await + setTimeout for reliable cross-browser timing.
+// ALGO_PAUSE_MS: extra wait after Effect Type change (device needs time to switch algo).
+// INTERVAL_MS: gap between consecutive SysEx messages.
+async function sendPresetToDevice(preset) {
+  if (!midiOutput) return;
+  const INTERVAL_MS   =  10; // ms between messages
+  const ALGO_PAUSE_MS = 200; // extra pause after algo switch
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let count = 0;
+
+  async function sendVEwait(idx, val) {
+    sendVE(idx, val);
+    count++;
+    await sleep(INTERVAL_MS);
+  }
+
+  setStatus('ok', '⏳ Sending preset to device…');
+
+  // FX: set algo first, pause, then send FX params
+  for (let s = 0; s < 5; s++) {
+    const algo = preset.algos[s];
+    await sendVEwait(idxMixer(s, 0), algo);
+    await sleep(ALGO_PAUSE_MS); // wait for device to finish algo switch
+    for (let i = 0; i < (ALGO_PARAMS[algo] || []).length && i < 30; i++)
+      await sendVEwait(idxFX(s, algo, i), preset.fx[s][i]);
+  }
+  // Mixer p1~8
+  for (let u = 0; u < 5; u++)
+    for (let p = 1; p < 9; p++) await sendVEwait(idxMixer(u, p), preset.mixer[u][p]);
+  // LFO
+  for (let u = 0; u < 4; u++)
+    for (let i = 0; i < LFO_PARAMS.length; i++) await sendVEwait(idxLFO(u, i), preset.lfo[u][i]);
+  // EG
+  for (let u = 0; u < 4; u++)
+    for (let i = 0; i < EG_PARAMS.length; i++) await sendVEwait(idxEG(u, i), preset.eg[u][i]);
+  // EF
+  for (let u = 0; u < 2; u++)
+    for (let i = 0; i < EF_PARAMS.length; i++) await sendVEwait(idxEF(u, i), preset.ef[u][i]);
+  // VP params
+  for (let n = 0; n < 32; n++) {
+    const [onF, srcF, destF, depF, polF] = preset.vp[n];
+    for (const [p, v] of [onF, srcF, destF, depF, polF].entries())
+      await sendVEwait(idxVP(n, p), v);
+  }
+  // VP Mapper (Curve): RemoveAll then Add each point per patch
+  for (let n = 0; n < 32; n++) {
+    sendVEMapper(0x02, n, 0, 0, 0);  // RemoveAll
+    count++;
+    await sleep(INTERVAL_MS);
+    const pts = preset.mapper[n];
+    for (let p = 0; p < pts.length; p++) {
+      sendVEMapper(0x7F, n, p, pts[p][0], pts[p][1]);  // Add
+      count++;
+      await sleep(INTERVAL_MS);
+    }
+  }
+
+  document.getElementById('tx-log').textContent = `[Load Preset] ${count} params sent`;
+  setStatus('ok', `✓ ${preset.filename} — ${count} params sent. Now you can Write on the device.`);
+}
+
+function importPresetFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preset = parsePreset(e.target.result, file.name);
+      if (preset) { library.push(preset); renderLibrary(); }
+      else alert(`${file.name}: parse failed (expected 10085 bytes)`);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function renderLibrary() {
+  const list = document.getElementById('lib-list');
+  list.innerHTML = '';
+  if (library.length === 0) {
+    list.innerHTML = '<p class="empty-msg">No presets loaded. Import .preset files above.</p>';
+    return;
+  }
+  library.forEach((preset, idx) => {
+    const slots = preset.algos
+      .map((a, s) => a ? `<span class="lib-algo">S${s+1}: ${ALGO_NAMES[a]}</span>` : '')
+      .filter(Boolean).join('');
+    const row = document.createElement('div');
+    row.className = 'lib-row';
+    row.innerHTML = `
+      <div class="lib-info">
+        <div class="lib-name">${preset.filename}</div>
+        <div class="lib-slots">${slots || '<span class="lib-algo">No Effect</span>'}</div>
+      </div>
+      <div class="lib-btns">
+        <button class="btn" onclick="loadPreset(library[${idx}])">Load</button>
+        <button class="btn" style="border-color:#f55;color:#f55;min-width:28px"
+          onclick="library.splice(${idx},1);renderLibrary()">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tab navigation
+// ═══════════════════════════════════════════════════════════
+function showTab(id) {
+  const order = ['fx','lfo','eg','ef','mixer','vp','lib'];
+  document.querySelectorAll('.tab').forEach((t, i) =>
+    t.classList.toggle('active', order[i] === id)
+  );
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'vp') renderVP();
+}
+
+function isVPActive() {
+  return document.getElementById('panel-vp')?.classList.contains('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════
+initAlgoSelector();
+renderFX();
+renderLFO();
+renderEG();
+renderEF();
+renderMixer();
+renderVP();
+updateDspDisplay();
+</script>
+
+<!-- ── Help Modal ── -->
+<div id="help-modal" style="display:none;position:fixed;inset:0;background:#0009;z-index:300;
+  align-items:center;justify-content:center" onclick="closeHelp(event)">
+  <div id="help-modal-inner" style="background:var(--surface2);border:1px solid var(--border);
+    border-radius:10px;max-width:680px;width:90%;max-height:80vh;display:flex;
+    flex-direction:column;box-shadow:0 8px 32px #000a">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span id="help-modal-title" style="font-weight:700;font-size:15px;color:var(--text)"></span>
+      <button onclick="closeHelp()" style="background:none;border:none;color:var(--text-dim);
+        font-size:20px;cursor:pointer;line-height:1;padding:0 4px">✕</button>
+    </div>
+    <div id="help-modal-body" style="overflow-y:auto;padding:18px 24px;
+      color:var(--text);line-height:1.7;font-size:13px"></div>
+  </div>
+</div>
+
+<!-- ── Curve Editor Modal ── -->
+<div id="curve-modal">
+  <div id="curve-modal-inner">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span id="curve-modal-title" style="font-weight:700;color:var(--accent);font-size:13px">Curve</span>
+      <button class="btn" onclick="closeCurveModal()">✕</button>
+    </div>
+    <canvas id="curve-modal-canvas" width="348" height="220"
+      onmousedown="curveMousedown(event)"
+      onmousemove="curveMousemove(event)"
+      onmouseup="curveMouseup(event)"
+      onmouseleave="curveMouseup(event)"
+      oncontextmenu="curveContextmenu(event)">
+    </canvas>
+    <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+      <button class="btn" onclick="curveCmdInit()">Init</button>
+      <button class="btn" onclick="curveCmdClear()">Clear</button>
+      <span style="flex:1;font-size:11px;color:var(--text-dim);text-align:center">
+        Click: add &nbsp;·&nbsp; Drag: move &nbsp;·&nbsp; Right-click: remove
+      </span>
+      <button class="btn" onclick="closeCurveModal()">Close</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
