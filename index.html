@@ -899,7 +899,7 @@ let curAlgo      = 0;
 const algoPerSlot = [0, 0, 0, 0, 0]; // track algorithm per FX slot
 
 // VP state: 32 patches × 5 params
-// [On(bool), Src(int), Dest({modIdx,parIdx}), Intensity(float), Polarity(int 0=± 1=+)]
+// [On(bool), Src(int), Dest({modIdx,parIdx}), Intensity(float), Polarity(int 0=+ 1=±)]
 const vpState  = Array.from({length: 32}, () => [false, 0, {modIdx:0, parIdx:0}, 0, 0]);
 // LFO state: 4 LFOs × 7 params
 const lfoState = Array.from({length:  4}, () => new Array(7).fill(null));
@@ -1023,7 +1023,7 @@ Algorithms that would push the total to 101% or above are disabled in the dropdo
 <table>
   <tr><th>Item</th><th>Details</th></tr>
   <tr><td>Name</td><td>KAOSS PAD V Parameter Editor</td></tr>
-  <tr><td>Version</td><td>0.1.0</td></tr>
+  <tr><td>Version</td><td>0.1.1</td></tr>
   <tr><td>Target device</td><td>KORG KAOSS PAD V</td></tr>
   <tr><td>Supported browsers</td><td>Google Chrome / Microsoft Edge (PC/Mac)</td></tr>
   <tr><td>Web MIDI API</td><td>Required — not available on mobile browsers</td></tr>
@@ -1035,6 +1035,11 @@ Algorithms that would push the total to 101% or above are disabled in the dropdo
     title: 'Release Notes',
     content: `
 <h2>Release Notes</h2>
+
+<h3>v0.1.1</h3>
+<ul>
+  <li>Fixed: DSP usage limit check now correctly blocks combinations at exactly 101% (was allowing 101%)</li>
+</ul>
 
 <h3>v0.1.0</h3>
 <ul>
@@ -1094,7 +1099,7 @@ function updateAlgoSelectorRestrictions() {
     Array.from(fxSel.options).forEach(opt => {
       const ai = parseInt(opt.value);
       const d  = getDspForAlgo(ai, curSlot);
-      const over = other + d > DSP_LIMIT;
+      const over = other + d >= DSP_LIMIT;
       opt.disabled = over;
       opt.style.color = over ? 'var(--text-dim)' : '';
       opt.title = `${d}% DSP` + (over ? ` — total ${other + d}% exceeds ${DSP_LIMIT}%` : '');
@@ -1109,7 +1114,7 @@ function updateAlgoSelectorRestrictions() {
     Array.from(mSel.options).forEach(opt => {
       const ai = parseInt(opt.value);
       const d  = getDspForAlgo(ai, slot);
-      const over = other + d > DSP_LIMIT;
+      const over = other + d >= DSP_LIMIT;
       opt.disabled = over;
       opt.style.color = over ? 'var(--text-dim)' : '';
       opt.title = `${d}% DSP` + (over ? ` — total ${other + d}% exceeds ${DSP_LIMIT}%` : '');
