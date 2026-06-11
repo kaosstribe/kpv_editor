@@ -42,6 +42,21 @@ To load a preset: go to the **Lib** tab, click **Import**, select a `.preset` fi
 - Float encoding: IEEE 754 big-endian split into 7-bit × 5 bytes
 - Mapper modes: `00`=Remove, `01`=Move, `02`=RemoveAll, `03`=Init, `7F`=Add
 
+## Release Notes
+
+### v0.1.2 — 2026-06-11
+- Removed Google Analytics to improve privacy and eliminate third-party data collection
+
+### v0.1.1 — 2026-06-11
+- Fixed: DSP usage limit check now correctly blocks combinations at exactly 101% (was allowing 101%)
+
+### v0.1.0 — 2026-06-11
+- Initial public release
+- Full parameter editing for FX / LFO / EG / EF / Mixer / Virtual Patch
+- Virtual Patch Curve (Mapper) GUI
+- `.preset` file import and send (Librarian)
+- DSP Usage display and algorithm selection restriction
+
 ## License
 
 MIT
